@@ -1,0 +1,378 @@
+% Uncomment for handout
+\def\HANDOUT{}
+
+
+\ifdefined\HANDOUT
+\documentclass[handout]{beamer}
+\usepackage{pgfpages}
+\pgfpagesuselayout{4 on 1}[letterpaper,landscape,border shrink=5mm]
+\else
+\documentclass{beamer}
+\fi
+
+\mode<presentation>
+{
+  \usetheme{Warsaw}
+  \definecolor{sered}{rgb}{0.78, 0.06, 0.18}
+  \definecolor{richblack}{rgb}{0.0, 0.0, 0.0}
+  \setbeamercolor{structure}{fg=sered,bg=richblack}
+  %\setbeamercovered{transparent}
+}
+
+
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{fancyvrb}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{esvect}
+
+\makeatletter
+\newcommand{\imagesource}[1]{{\centering\hfill\break\hbox{\scriptsize Image Source:\thinspace{\tiny\itshape #1}}\par}}
+\newcommand{\image}[3][\@nil]{%
+        \def\tmp{#1}%
+        \begin{center}
+        \ifx\tmp\@nnil
+            \includegraphics[max height = 0.55\textheight, max width = \textwidth]{images/#2}
+        \else
+            \includegraphics[max height = 0.50\textheight, max width = \textwidth]{images/#2}
+            \linebreak
+            #1
+        \fi
+        \linebreak
+        {\tiny Image Source:\thinspace{\tiny #3}}
+        \end{center}
+}
+
+\newenvironment{code}{%
+ \VerbatimEnvironment
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ \begin{BVerbatim}
+  }{
+  \end{BVerbatim}
+ \end{adjustbox}
+}
+
+
+\newenvironment{scaled}{%
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ }{
+ \end{adjustbox}
+}
+
+\title{Tokens and Lexemes}
+
+
+\author{Robert Lowe}
+
+\institute[Southeast Missouri State University] % (optional, but mostly needed)
+{
+  Department of Computer Science\\
+  Southeast Missouri State University
+}
+
+\date[]{}
+\subject{}
+
+\pgfdeclareimage[height=1.0cm]{university-logo}{images/semo-logo}
+\logo{\pgfuseimage{university-logo}}
+
+
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+
+% Structuring a talk is a difficult task and the following structure
+% may not be suitable. Here are some rules that apply for this
+% solution: 
+
+% - Exactly two or three sections (other than the summary).
+% - At *most* three subsections per section.
+% - Talk about 30s to 2min per frame. So there should be between about
+%   15 and 30 frames, all told.
+
+% - A conference audience is likely to know very little of what you
+%   are going to talk about. So *simplify*!
+% - In a 20min talk, getting the main ideas across is hard
+%   enough. Leave out details, even if it means being less precise than
+%   you think necessary.
+% - If you omit details that are vital to the proof/implementation,
+%   just say so once. Everybody will be happy with that.
+
+\section{Tokens and Lexemes}
+\begin{frame}{Lexical Elements}
+    \begin{block}{Tokens vs Lexemes}
+        A {\bf token} is a generalization, like a category. A {\bf lexeme} is a specific string.
+        One token may match several lexemes.
+    \end{block}
+    \begin{description}
+        \item[Token] -- Representation/Label of an element of a lexical element.
+        \item[Lexeme] -- The actual sequence of characters which make up the lexical element.
+    \end{description}
+\end{frame}
+
+\begin{frame}{Lexical Element Information}
+    A lexical analyzer (lexer) provides a stream of tokens to the parser. The parser often
+    needs additional information to do its work:
+    \begin{itemize}
+        \item {\bf Token} -- An easily comparable representation of a token.
+        \item {\bf Lexeme} -- The specific string which was matched to the token.
+        \item {\bf Value} -- In some cases, for example literal values, the lexer
+            provides the concrete value of the lexeme. 
+        \item {\bf Line, Column} -- The location of the start of the lexical element in the 
+            source code. Useful for error reporting.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Example Lexical Elements}
+\begin{code}
+  while( x < 11 ) 
+\end{code}
+
+\vspace{1cm}
+
+\begin{code}
+Lexeme(token=<Token.WHILE: 12>, lex='while', value='while', line=7, col=3)
+Lexeme(token=<Token.LPAREN: 3>, lex='(', value='(', line=7, col=8)
+Lexeme(token=<Token.IDENTIFIER: 23>, lex='x', value='x', line=7, col=10)
+Lexeme(token=<Token.LT: 13>, lex='<', value='<', line=7, col=12)
+Lexeme(token=<Token.INTNUM: 21>, lex='10', value=10, line=7, col=14)
+Lexeme(token=<Token.RPAREN: 4>, lex=')', value=')', line=7, col=17)
+\end{code}
+\end{frame}
+
+\section{Designing a Lexical Analyzer}
+\begin{frame}[fragile]{Representing Tokens}
+\begin{columns}
+\column{0.6\textwidth}
+    \begin{itemize}
+        \item Tokens can simply be distinct integers.
+        \item Enumerated constants provide meaningful labels to the integers.
+        \item Python's \texttt{Enum} class from the \texttt{enum} module provides additional capabilities, such as the ability to easily print a token's name.
+        \item We usually add two additional tokens: \texttt{INVALID} and \texttt{EOF}
+    \end{itemize}
+\column{0.4\textwidth}
+\begin{block}{Toy C's Tokens}
+\begin{code}
+class Token(Enum):
+    INVALID = auto()
+    EOF = auto()
+    LPAREN = auto()
+    RPAREN = auto()
+    COMMA = auto()
+    LBRACE = auto()
+    RBRACE = auto()
+    SEMI = auto()
+    REAL = auto()
+    INT = auto()
+    EQUAL = auto()
+    WHILE = auto()
+    LT = auto()
+    PLUS = auto()
+    MINUS = auto()
+    TIMES = auto()
+    DIV = auto()
+    DIGIT = auto()
+    LETTER = auto()
+    DOT = auto()
+    INTNUM = auto()
+    REALNUM = auto()
+    IDENTIFIER = auto()
+
+\end{code}
+\end{block}
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Representing Lexical Elements}
+\begin{block}{Toy C's Lexical Element}
+\begin{code}
+Lexeme = namedtuple("Lexeme", ("token", "lex", "value", "line", "col"))
+...
+self.cur_tok = Lexeme(Token.IDENTIFIER, s, s, line, col)
+\end{code}
+\end{block}
+
+\begin{itemize}
+    \item A lexical element is usually a heterogeneous data structure.
+    \item Typically we desire these to be {\bf immutable}.
+    \item Python's \texttt{namedtuple} from the \texttt{collections} module is a good choice.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{The Lexer Object}
+\begin{itemize}
+    \begin{block}{Running the Lexer}
+    \begin{code}
+    lexer = Lexer(file)
+    lexer.next()
+    while lexer.cur_tok.token != Token.EOF:
+        print(lexer.cur_tok)
+        lexer.next()
+    \end{code}
+    \end{block}
+    \item Lexer's are typically complex objects.
+    \item A lexer's public interface typically consists of just two things:
+    \begin{description}
+        \item[\texttt{next()}] -- A function which advances the lexer to the next lexical element.
+        \item[\texttt{cur\_tok}] --  The current lexical element.
+    \end{description}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Lexer State}
+    \begin{itemize}
+        \item A lexer's internal state typically consists of:
+        \begin{description}
+            \item[\texttt{file}] -- The stream being analyzed (Typically a source file)
+            \item[\texttt{line}] -- The line number being analyzed
+            \item[\texttt{col}] -- The current column number being analyzed
+            \item[\texttt{cur\_char}] -- The current character being analyzed
+            \item[\texttt{cur\_tok}] -- The current lexical element
+        \end{description}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Consuming Characters}
+\begin{columns}
+\column{0.6\textwidth}
+    \begin{itemize}
+        \item A lexer processes its input character by character.
+        \item The character under current consideration is stored in \texttt{cur\_char}.
+        \item Characters are consumed as they are matched/discarded.
+        \item The lexer keeps track of \texttt{line} and \texttt{col} fields as it reads the files.
+    \end{itemize}
+
+\column{0.4\textwidth}
+    \begin{block}{Character Processing}
+    \begin{code}
+def read(self):
+    self.cur_char = self.file.read(1)
+    if self.cur_char:
+        self.col+=1
+
+def consume(self):
+    self.read()
+
+    # detect end of line
+    if self.cur_char == '\n':
+        self.line += 1
+        self.col = 0
+
+def skip_space(self):
+    while self.cur_char.isspace():
+        self.consume()
+    self.labelDef = self.col == 1
+\end{code}
+    \end{block}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Grouping the Lexeme Grammar}
+    Tokens can be broadly categorized into 3 groups.
+    \begin{description}
+        \item[Group 1] -- Single character tokens which are not the prefix of any other token.\newline
+        {\em Example:} \texttt{+, -, *}
+        \vspace{0.5cm}
+        
+        \item[Group 2] -- Tokens of fixed length which have prefixes in common.\newline
+        {\em Example:} \texttt{=, ==, <, <=}
+        \vspace{0.5cm}
+        
+        \item[Group 3] -- Tokens which are either of variable length or share a prefix with a token of variable length.
+        \newline
+        {\em Example:} \texttt{while, whileX, x, y, 12, 12.5, int, integer}
+    \end{description}
+\end{frame}
+
+\begin{frame}[fragile]{Group 1 - Single Match Algorithm}
+\begin{code}
+1.) Build a list of single match tokens and the characters they match.
+2.) For each token in the list:
+    2.1) if cur_char matches, cur_tok = token, return True
+3.) If no match was made, return False
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Group 2 - Common Prefix Strings}
+\begin{code}
+1.) Build a list of common prefix tokens and the matching strings.
+2.) s = cur_char
+3.) Build a list of possible tokens with s as a prefix.
+4.) while len(possible) > 1:
+    4.1) consume()
+    4.2) s = s + cur_char
+    4.3) Remove any elements from possible if they do not have s as a 
+         prefix.
+5.) if len(possible) == 0, return False
+6.) token = possible[0]
+7.) while len(s) < len(token):
+    7.1)   consume()
+    7.2)   s += cur_char
+    7.3)   if s is not the prefix of token, cur_tok = invalid, return True
+8.) cur_tok = token, return True
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Group 3 - Repeating Patterns}
+\begin{code}
+1.) Build a list of fixed tokens.
+2.) s = ""
+3.) while cur_char is consistent with the pattern:
+    3.1) s = s + cur_char
+    3.2) consume()
+4.) if len(s) == 0, return False
+5.) for token in tokens:
+    5.1) If s matches token: cur_tok = token, return True
+6.) cur_tok = matching variable length token.
+7.) return True
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Lexical Processing}
+\begin{code}
+def next(self):
+    self.skip_space()
+
+    # handle end of file
+    if not self.cur_char:
+        self.cur_tok = Lexeme(Token.EOF, None, None, self.line, self.col)
+        return self.cur_tok
+
+    # try each lexing possibility
+    if self.group1():
+        return self.cur_tok
+    elif self.group2():
+        return self.cur_tok
+    elif self.group3():
+        return self.cur_tok
+    else:
+        # must be an invalid token
+        self.cur_tok = Lexeme(Token.INVALID, self.cur_char, None, self.line, self.col)
+        self.consume()
+        return self.cur_tok
+\end{code}
+\end{frame}
+
+\end{document}

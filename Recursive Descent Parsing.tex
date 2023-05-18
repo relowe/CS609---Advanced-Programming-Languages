@@ -1,0 +1,441 @@
+% Uncomment for handout
+\def\HANDOUT{}
+
+
+\ifdefined\HANDOUT
+\documentclass[handout]{beamer}
+\usepackage{pgfpages}
+\pgfpagesuselayout{4 on 1}[letterpaper,landscape,border shrink=5mm]
+\else
+\documentclass{beamer}
+\fi
+
+\mode<presentation>
+{
+  \usetheme{Warsaw}
+  \definecolor{sered}{rgb}{0.78, 0.06, 0.18}
+  \definecolor{richblack}{rgb}{0.0, 0.0, 0.0}
+  \setbeamercolor{structure}{fg=sered,bg=richblack}
+  %\setbeamercovered{transparent}
+}
+
+
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{fancyvrb}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{esvect}
+\usetikzlibrary{overlay-beamer-styles}
+
+\makeatletter
+\newcommand{\imagesource}[1]{{\centering\hfill\break\hbox{\scriptsize Image Source:\thinspace{\tiny\itshape #1}}\par}}
+\newcommand{\image}[3][\@nil]{%
+        \def\tmp{#1}%
+        \begin{center}
+        \ifx\tmp\@nnil
+            \includegraphics[max height = 0.55\textheight, max width = \textwidth]{images/#2}
+        \else
+            \includegraphics[max height = 0.50\textheight, max width = \textwidth]{images/#2}
+            \linebreak
+            #1
+        \fi
+        \linebreak
+        {\tiny Image Source:\thinspace{\tiny #3}}
+        \end{center}
+}
+
+\newenvironment{code}{%
+ \VerbatimEnvironment
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ \begin{BVerbatim}
+  }{
+  \end{BVerbatim}
+ \end{adjustbox}
+}
+
+
+\newenvironment{scaled}{%
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ }{
+ \end{adjustbox}
+}
+
+\title{Recursive Descent Parsing and LL(1) Grammars}
+
+
+\author{Robert Lowe}
+
+\institute[Southeast Missouri State University] % (optional, but mostly needed)
+{
+  Department of Computer Science\\
+  Southeast Missouri State University
+}
+
+\date[]{}
+\subject{}
+
+\pgfdeclareimage[height=1.0cm]{university-logo}{images/semo-logo}
+\logo{\pgfuseimage{university-logo}}
+
+
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+
+% Structuring a talk is a difficult task and the following structure
+% may not be suitable. Here are some rules that apply for this
+% solution: 
+
+% - Exactly two or three sections (other than the summary).
+% - At *most* three subsections per section.
+% - Talk about 30s to 2min per frame. So there should be between about
+%   15 and 30 frames, all told.
+
+% - A conference audience is likely to know very little of what you
+%   are going to talk about. So *simplify*!
+% - In a 20min talk, getting the main ideas across is hard
+%   enough. Leave out details, even if it means being less precise than
+%   you think necessary.
+% - If you omit details that are vital to the proof/implementation,
+%   just say so once. Everybody will be happy with that.
+\section{General Recursive Descent Parsing}
+
+\begin{frame}{A Sample -- As an Expression}
+Expression: \texttt{3*(2-5)}
+\begin{columns}
+    \column{0.7\textwidth}
+     
+    \centering
+    \begin{adjustbox}{max width=\textwidth, totalheight=0.8\textheight}
+        \begin{tikzpicture}
+            \node {$E$}
+                child { node {$T$}
+                    child { node {$T$}
+                        child{ node {$F$} 
+                            child { node {\textttt{3}}}
+                        }
+                    }    
+                    child { node {\textttt{*}}}    
+                    child { node {$F$}
+                        child { node {\texttt{LPAREN}}}
+                        child { node {$E$} 
+                            child {node { $E$ }
+                                child {node {$T$}
+                                    child {node {$F$}
+                                        child {node {\texttt{2}}}
+                                    }
+                                }
+                            }
+                            child {node {\texttt{-}}}
+                            child {node {$T$}
+                                child {node {$F$}
+                                    child {node {\textttt{5}}}
+                                }
+                            }
+                        }
+                        child { node {\texttt{RPAREN}}}
+                    }
+                }
+        \end{tikzpicture}
+    \end{adjustbox}
+    
+    \column{0.3\textwidth}
+    \begin{enumerate}
+        \item $E \rightarrow E+T$
+        \item $E \rightarrow E-T$
+        \item $E \rightarrow T$
+        \item $T \rightarrow T*F$
+        \item $T \rightarrow T/F$
+        \item $T \rightarrow F$
+        \item $F \rightarrow (E)$
+        \item $F \rightarrow Number$
+    \end{enumerate}    
+\end{columns}
+\end{frame}
+
+
+\begin{frame}{A Sample -- As a Token Stream}
+\begin{adjustbox}{width=\textwidth}
+\texttt{NUMBER TIMES LPAREN NUMBER MINUS NUMBER RPAREN}
+\end{adjustbox}
+
+\begin{columns}
+    \column{0.7\textwidth}
+     
+    \centering
+    \begin{adjustbox}{max width=\textwidth, totalheight=0.8\textheight}
+        \begin{tikzpicture}
+            \node {$E$}
+                child { node {$T$}
+                    child { node {$T$}
+                        child{ node {$F$} 
+                            child { node {\textttt{NUMBER}}}
+                        }
+                    }    
+                    child { node {\textttt{TIMES}}}    
+                    child { node {$F$}
+                        child { node {\texttt{LPAREN}}}
+                        child { node {$E$} 
+                            child {node { $E$ }
+                                child {node {$T$}
+                                    child {node {$F$}
+                                        child {node {\texttt{NUMBER}}}
+                                    }
+                                }
+                            }
+                            child {node {\texttt{MINUS}}}
+                            child {node {$T$}
+                                child {node {$F$}
+                                    child {node {\textttt{NUMBER}}}
+                                }
+                            }
+                        }
+                        child { node {\texttt{RPAREN}}}
+                    }
+                }
+        \end{tikzpicture}
+    \end{adjustbox}
+    
+    \column{0.3\textwidth}
+    \begin{enumerate}
+        \item $E \rightarrow E+T$
+        \item $E \rightarrow E-T$
+        \item $E \rightarrow T$
+        \item $T \rightarrow T*F$
+        \item $T \rightarrow T/F$
+        \item $T \rightarrow F$
+        \item $F \rightarrow (E)$
+        \item $F \rightarrow Number$
+    \end{enumerate}    
+\end{columns}
+\end{frame}
+
+\begin{frame}{How can we generate the tree?}
+\begin{adjustbox}{width=\textwidth}
+\texttt{NUMBER TIMES LPAREN NUMBER MINUS NUMBER RPAREN}
+\end{adjustbox}
+
+\begin{columns}
+    \column{0.7\textwidth}
+    A simple approach:
+    \begin{itemize}
+        \item Try each rule in turn.
+        \item Expand until a match becomes impossible.
+        \item Backtrack and repeat until all derivations are expanded.
+    \end{itemize}
+    
+    \column{0.3\textwidth}
+    \begin{enumerate}
+        \item $E \rightarrow E+T$
+        \item $E \rightarrow E-T$
+        \item $E \rightarrow T$
+        \item $T \rightarrow T*F$
+        \item $T \rightarrow T/F$
+        \item $T \rightarrow F$
+        \item $F \rightarrow (E)$
+        \item $F \rightarrow Number$
+    \end{enumerate}    
+\end{columns}
+\end{frame}
+
+\begin{frame}{We need determinism!}
+    \begin{itemize}
+        \item We need to make definitive choices, backtracking is expensive!
+        \item We have the following information to go on:
+        \begin{itemize}
+            \item A buffer of tokens.
+            \item Where we are in the parsing process.
+        \end{itemize}
+        \item The goal is to do this scanning only 1 token at a time.
+        \item We need an LL(1) grammar to do this!
+    \end{itemize}
+\end{frame}
+
+
+\section{LL(1) Grammars}
+\begin{frame}{LL(1) Grammars}
+    \begin{block}{Definition}
+        An {\bf LL(1) Grammar} is a grammar where rules can be correctly selected using
+        only 1 token of look-ahead.
+    \end{block}
+    
+    \begin{itemize}
+        \item Not all languages can have an LL(1) grammar.
+        \item Properties:
+        \begin{itemize}
+            \item Non-Ambiguous
+            \item Not Left Recursive
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{$First$ and $Follow$}
+    \begin{description}
+        \item[$First(A)$] The set of all terminals which can appear at the beginning of some derivation of $A$.
+        \item[$Follow(A)$] The set of all terminals which can appear to the right of a derivation of $A$.
+    \end{description}
+\end{frame}
+
+\begin{frame}{Formal Verification of LL(1)}
+\[
+G = \langle \Sigma,N,S,P\rangle
+\]
+
+A context free grammar, $G$ is an LL(1) grammar if and only if
+\begin{itemize}
+    \item For every $A\in N$ and strings $\alpha,\beta$ such that $\alpha \neq \beta$ and $A\rightarrow \alpha|\beta \in P$:
+    \begin{itemize}
+        \item $First(\alpha) \cap First(\beta)=\emptyset$
+        \item If $\alpha \Rightarrow \epsilon$ then $First(\beta)\cap Follow(A) = \emptyset$
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{What about our Expression Grammar?}
+\begin{columns}
+    \column{0.7\textwidth}
+    \begin{itemize}[<+->]
+        \item $First(E) = \{Number, (\}$
+        \item $First(T) = \{Number, (\}$
+        \item $First(F) = \{Number,(\}$
+        \item $First(E+T) = First(E)$
+        \item $First(E-T) = First(E)$
+        \item $First(T*F) = First(T)$
+        \item $First(T/F) = First(T)$
+        \item So this grammar is not LL(1)!
+    \end{itemize}
+    
+    \column{0.3\textwidth}
+    \begin{enumerate}
+        \item $E \rightarrow E+T$
+        \item $E \rightarrow E-T$
+        \item $E \rightarrow T$
+        \item $T \rightarrow T*F$
+        \item $T \rightarrow T/F$
+        \item $T \rightarrow F$
+        \item $F \rightarrow (E)$
+        \item $F \rightarrow Number$
+    \end{enumerate}    
+\end{columns}
+\end{frame}
+
+\begin{frame}{Eliminating Left Recursion}
+\begin{columns}
+    \column{0.5\textwidth}
+    \begin{block}{Left Recursive Rule}
+        \[
+        A \rightarrow A\alpha_1 | A\alpha_2 | \ldots | A\alpha_n | \beta
+        \]
+    \end{block}
+    \column{0.5\textwidth}
+    \begin{block}{Non-Left Recursive Rule}
+        \begin{align*}
+            A &\rightarrow \beta A'\\
+            A' & \rightarrow \alpha_1 A' | \alpha_2 A' | \ldots | \alpha_n A'| \epsilon
+        \end{align*}
+    \end{block}
+\end{columns}
+\begin{itemize}
+    \item Direct left-recursion can be removed by the above replacement.
+    \item We may use substitution on transitive left recursive grammars (these are rare)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Eliminating Left Recursion from E}
+    \begin{enumerate}[<+->]
+        \item $E \rightarrow E+T | E-T | T$
+        \item $\alpha_1 = +T, \alpha_2=-T, \beta=T$
+        \item Perform the Replacement:
+        \begin{itemize}
+            \item $E \rightarrow TE'$
+            \item $E' \rightarrow +TE' | -TE' | \epsilon$
+        \end{itemize}
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}{The LL(1) Expression Grammar}
+\begin{columns}
+\column{0.7\textwidth}
+    \begin{itemize}[<+->]
+        \item $A \rightar \alpha | \beta$ s.t. $\alpha \neq \beta$ means that $First(\alpha)\cap First(\beta) = \emptyset$
+        \begin{itemize}
+            \item $First(TE') = First(T)$
+            \item $First(+TE') = \{+\}$
+            \item $First(-TE') = \{-\}$
+            \item Also holds for $E'$, $T$, $T'$, $F$
+        \end{itemize}
+        \item $\alpha \Rightarrow \epsilon$ means that $First(\beta)\cap Follow(A)=\emptyset$
+        \begin{itemize}
+            \item $Follow(E')=Follow(E)$
+            \item $Follow(E)=\{)\}$
+            \item $Follow(T')=Follow(T)$
+            \item $Follow(T)=\{+,-\}$
+        \end{itemize}
+        \item This grammar is therefore an LL(1) Grammar
+    \end{itemize}
+\column{0.3\textwidth}
+\begin{enumerate}
+    \item $E \rightarrow TE'$
+    \item $E' \rightarrow +TE'$
+    \item $E' \rightarrow -TE'$
+    \item $E' \rightarrow \epsilon$
+    \item $T \rightarrow FT'$
+    \item $T' \rightarrow *FT'$
+    \item $T' \rightarrow /FT'$
+    \item $T' \rightarrow \epsilon$
+    \item $F \rightarrow (E)$
+    \item $F \rightarrow Number$
+\end{enumerate}
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{LL(1) Recursive Descent Parsing}
+\begin{code}
+def E(self):
+  self.T()
+  self.E_prime()
+
+def E_prime(self):
+    if self.lexer.cur_tok.token == Token.PLUS:
+        self.lexer.next()
+        self.T()
+        self.T_prime()
+    elif self.lexer.cur_tok.token == Token.MINUS:
+        self.lexer.next()
+        self.T()
+        self.T_prime()
+    # epsilon requires no code, we just don't recurse.
+\end{code}
+\end{frame}
+
+\begin{frame}{Suggested Exercises}
+    \begin{enumerate}
+        \item Eliminate left recursion from toyc.
+        \item Verify that the non-left recursive toyc is LL(1).
+        \item Eliminate left recursion from funlang.
+        \item Verify that the non-left recursive funlang is LL(1).
+    \end{enumerate} 
+\end{frame}
+\end{document}

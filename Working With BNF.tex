@@ -1,0 +1,321 @@
+% Uncomment for handout
+%\def\HANDOUT{}
+
+
+\ifdefined\HANDOUT
+\documentclass[handout]{beamer}
+\usepackage{pgfpages}
+\pgfpagesuselayout{4 on 1}[letterpaper,landscape,border shrink=5mm]
+\else
+\documentclass{beamer}
+\fi
+
+\mode<presentation>
+{
+  \usetheme{Warsaw}
+  \definecolor{sered}{rgb}{0.78, 0.06, 0.18}
+  \definecolor{richblack}{rgb}{0.0, 0.0, 0.0}
+  \setbeamercolor{structure}{fg=sered,bg=richblack}
+  %\setbeamercovered{transparent}
+}
+
+
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{fancyvrb}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{esvect}
+
+\makeatletter
+\newcommand{\imagesource}[1]{{\centering\hfill\break\hbox{\scriptsize Image Source:\thinspace{\tiny\itshape #1}}\par}}
+\newcommand{\image}[3][\@nil]{%
+        \def\tmp{#1}%
+        \begin{center}
+        \ifx\tmp\@nnil
+            \includegraphics[max height = 0.55\textheight, max width = \textwidth]{images/#2}
+        \else
+            \includegraphics[max height = 0.50\textheight, max width = \textwidth]{images/#2}
+            \linebreak
+            #1
+        \fi
+        \linebreak
+        {\tiny Image Source:\thinspace{\tiny #3}}
+        \end{center}
+}
+
+\newenvironment{code}{%
+ \VerbatimEnvironment
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ \begin{BVerbatim}
+  }{
+  \end{BVerbatim}
+ \end{adjustbox}
+}
+
+\title{Working with BNF}
+
+
+\author{Robert Lowe}
+
+\institute[Southeast Missouri State University] % (optional, but mostly needed)
+{
+  Department of Computer Science\\
+  Southeast Missouri State University
+}
+
+\date[]{}
+\subject{}
+
+\pgfdeclareimage[height=1.0cm]{university-logo}{images/semo-logo}
+\logo{\pgfuseimage{university-logo}}
+
+
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+
+% Structuring a talk is a difficult task and the following structure
+% may not be suitable. Here are some rules that apply for this
+% solution: 
+
+% - Exactly two or three sections (other than the summary).
+% - At *most* three subsections per section.
+% - Talk about 30s to 2min per frame. So there should be between about
+%   15 and 30 frames, all told.
+
+% - A conference audience is likely to know very little of what you
+%   are going to talk about. So *simplify*!
+% - In a 20min talk, getting the main ideas across is hard
+%   enough. Leave out details, even if it means being less precise than
+%   you think necessary.
+% - If you omit details that are vital to the proof/implementation,
+%   just say so once. Everybody will be happy with that.
+
+\section{Evaluating Grammars}
+
+\begin{frame}{The Problem with Ambiguity}
+\begin{itemize}
+    \item Recall that a grammar is meant to be an exact specification of a language.
+    \item Compilers and interpreters will {\bf parse} input based on the grammar.
+    \item If there is any ambiguity in a grammar, we cannot precisely specify what a compiler should do!
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Our Grammar So Far}
+\begin{code}
+< Start >      ::= < Expression >
+
+< Expression > ::= < Expression > "+" < Expression > 
+                   | < Expression > "-" < Expression >
+                   | < Expression > "*" < Expression >
+                   | < Expression > "/" < Expression >
+                   | < Number >
+
+< Number >     ::= < Number > < Digit > 
+                   | < Digit >
+
+< Digit >      ::= "0" | "1"
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Ambiguous Rules}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{code}
+11+10*11
+
+< Expression > + < Expression >
+[11] + [10*11]
+[11] + [[10]*[11]]
+
+--- or ---
+
+< Expression > * < Expression >
+[11+10] * [11]
+[[11]+[10]] * [11]
+
+\end{code}
+\column{0.5\textwidth}
+\begin{block}{An Ambiguous Rule}
+\begin{code}
+< Expression > ::= 
+    < Expression > "+" < Expression > 
+    | < Expression > "-" < Expression >
+    | < Expression > "*" < Expression >
+    | < Expression > "/" < Expression >
+    | < Number >
+\end{code}
+\end{block}
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Parse Trees}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{block}{Parse Tree 1}
+\begin{code}
+
+[11] + [[10]*[11]]
+
+         +
+       /   \
+     11     *
+          /   \
+        10     11  
+        
+\end{code}
+\end{block}
+\column{0.5\textwidth}
+\begin{block}{Parse Tree 2}
+\begin{code}
+
+[[11]+[10]] * [11]
+
+             *
+           /   \
+          +     11
+        /   \
+       11   10 
+       
+\end{code}
+\end{block}
+\end{columns}    
+\end{frame}
+
+\begin{frame}[fragile]{Evaluating Parse Trees}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{block}{Parse Tree 1}
+\begin{code}
+(1)
+         +
+       /   \
+     11     *
+          /   \
+        10     11  
+        
+(2)        
+         +
+       /   \
+     11    110  
+        
+(3)        
+       1001 
+
+\end{code}
+\end{block}
+\column{0.5\textwidth}
+\begin{block}{Parse Tree 2}
+\begin{code}
+(1)
+             *
+           /   \
+          +     11
+        /   \
+       11   10 
+       
+(2)
+             *
+           /   \
+         101    11
+       
+(3)
+           1111
+
+\end{code}
+\end{block}
+\end{columns}    
+\end{frame}
+
+\section{Correcting Problems in Grammars}
+
+\begin{frame}{Recursion and Ambiguity}
+\begin{block}{Ambiguous Grammar}
+    A grammar is {\bf ambiguous} if it contains at least one rule which can produce more than one parse tree.
+\end{block}
+\begin{itemize}
+    \item {\bf Left Recursion} is when a rule recurses to the left of a non terminal. \texttt{< A > ::= < A > "b"}
+    \item {\bf Right Recursion} is when a rule recurses to the right of a non terminal. \texttt{< A > ::= "b" < A > }
+    \item {\bf Multiple Recursion} is any mixture of left or right recursion. \texttt{< A > :: = < A > "b" < A >}
+    \item Multiple recursion is a potential source of ambiguity!
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Correcting Ambiguity}
+\begin{itemize}
+    \item There can never be an algorithm for determining whether a context-free algorithm is ambiguous.
+    \item We can prevent ambiguity by:
+    \begin{itemize}
+        \item Convention 
+        \item By Controlling Recursion
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{A corrected Grammar}
+\begin{code}
+< Start >      ::= < Expression >
+
+< Expression > ::= < Expression > "+" < Term > 
+                   | < Expression > "-" < Term >
+                   | < Term >
+
+< Term >       ::= < Term > "*" < Number >
+                   | < Term > "/" < Number >
+                   | < Number >
+
+< Number >     ::= < Number > < Digit > 
+                   | < Digit >
+
+< Digit >      ::= "0" | "1"
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Applying the Corrected Grammar}
+\begin{code}
+11+10*11
+
+< Expression > "+" < Term >
+       |              | 
+   < Term >        < Term > "*" < Number >
+       |              |             |
+   < Number >     < Number >    < Number >
+       |              |             |
+      11        + [  10      *      11 ]
+                      
+\end{code}
+\end{frame}
+
+
+\begin{frame}{A Word on the Order of Operations}
+    \begin{itemize}
+        \item The recursion depth of an operator determines its {\bf precedence}. Deeper operators are processed first.
+        \item The recursion side of an operator determines its {\bf associativity}. Left recursion is used for left associativity, right recursion for right associativity.
+        \item There is still ambiguity in a "+" and "-", but associativity breaks the tie if we assume we expand the left most non-terminal first.
+    \end{itemize}
+\end{frame}
+
+
+\end{document}

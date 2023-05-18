@@ -1,0 +1,311 @@
+% Uncomment for handout
+%\def\HANDOUT{}
+
+
+\ifdefined\HANDOUT
+\documentclass[handout]{beamer}
+\usepackage{pgfpages}
+\pgfpagesuselayout{4 on 1}[letterpaper,landscape,border shrink=5mm]
+\else
+\documentclass{beamer}
+\fi
+
+\mode<presentation>
+{
+  \usetheme{Warsaw}
+  \definecolor{sered}{rgb}{0.78, 0.06, 0.18}
+  \definecolor{richblack}{rgb}{0.0, 0.0, 0.0}
+  \setbeamercolor{structure}{fg=sered,bg=richblack}
+  %\setbeamercovered{transparent}
+}
+
+
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{fancyvrb}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{esvect}
+
+\makeatletter
+\newcommand{\imagesource}[1]{{\centering\hfill\break\hbox{\scriptsize Image Source:\thinspace{\tiny\itshape #1}}\par}}
+\newcommand{\image}[3][\@nil]{%
+        \def\tmp{#1}%
+        \begin{center}
+        \ifx\tmp\@nnil
+            \includegraphics[max height = 0.55\textheight, max width = \textwidth]{images/#2}
+        \else
+            \includegraphics[max height = 0.50\textheight, max width = \textwidth]{images/#2}
+            \linebreak
+            #1
+        \fi
+        \linebreak
+        {\tiny Image Source:\thinspace{\tiny #3}}
+        \end{center}
+}
+
+\newenvironment{code}{%
+ \VerbatimEnvironment
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ \begin{BVerbatim}
+  }{
+  \end{BVerbatim}
+ \end{adjustbox}
+}
+
+
+\newenvironment{scaled}{%
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ }{
+ \end{adjustbox}
+}
+
+\title{Variable Typing Strategies}
+
+
+\author{Robert Lowe}
+
+\institute[Southeast Missouri State University] % (optional, but mostly needed)
+{
+  Department of Computer Science\\
+  Southeast Missouri State University
+}
+
+\date[]{}
+\subject{}
+
+\pgfdeclareimage[height=1.0cm]{university-logo}{images/semo-logo}
+\logo{\pgfuseimage{university-logo}}
+
+
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+
+% Structuring a talk is a difficult task and the following structure
+% may not be suitable. Here are some rules that apply for this
+% solution: 
+
+% - Exactly two or three sections (other than the summary).
+% - At *most* three subsections per section.
+% - Talk about 30s to 2min per frame. So there should be between about
+%   15 and 30 frames, all told.
+
+% - A conference audience is likely to know very little of what you
+%   are going to talk about. So *simplify*!
+% - In a 20min talk, getting the main ideas across is hard
+%   enough. Leave out details, even if it means being less precise than
+%   you think necessary.
+% - If you omit details that are vital to the proof/implementation,
+%   just say so once. Everybody will be happy with that.
+\section{Variable Types and Attributes}
+\begin{frame}[t]{Anatomy of a Variable}
+\begin{columns}[t]
+    \column{0.5\textwidth}
+    \begin{itemize}
+        \item Variables carry {\bf attributes}.
+        \item Attributes are {\bf bound} to variables.
+        \item Attributes that are statically bound are typically only stored at compile time.
+    \end{itemize}
+    
+    \column{0.5\textwidth}
+    \begin{block}{Common Variable Attributes}
+    \begin{itemize}
+        \item Name
+        \item Address
+        \item Type
+        \item Value
+    \end{itemize}
+    \end{block}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Variable Types}
+    \begin{itemize}
+        \item A variable's \textbf{type} is an attribute that describes its range of values and operations.
+        \item The variable type system of a language reveals a lot about its semantic behavior.
+        \item Languages should check for type errors and/or perform \textbf{type coercion} in operations.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Type Coercion Examples}
+    \begin{itemize}
+        \item C/C++
+        \begin{itemize}
+            \item $double + int \rightarrow double$
+            \item $double * int \rightarrow double$
+            \item $double / int \rightarrow double$
+        \end{itemize}
+        \item Javascript
+        \begin{itemize}
+            \item $string + numeric \rightarrow string$
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Variable Typing Throughout History}
+\begin{itemize}
+    \item Early machine code languages provided no typing.
+    \item In the 1950's, FORTRAN provided integer, real, and character typing.
+    \begin{itemize}
+        \item Name Based Types: I, J, K, L, M, N are integers. All others real.
+        \item Explicit typing to override name typing.
+    \end{itemize}
+    \item In the 1960's, ALGOL introduced fully declarative typing and user-defined types.
+    \item COBOL implemented typing by image.
+    \item 1970's, Strong typing with enumerated types and record types.
+    \item 1980's to present saw the rise of user-defined abstract types.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Strong Variable Typing}
+\begin{block}{Definition}
+\textbf{Strong Typing} is when a language reports all type errors.
+\end{block}
+\begin{itemize}
+    \item Most languages are not fully strongly typed.
+    \item C/C++ tend toward strong typing, however they have union types, which are not checked.
+    \item Strong typing exists on a spectrum.
+\end{itemize}
+\end{frame}
+
+\section{Common Primitive Types}
+\begin{frame}{Numeric Types}
+    \begin{description}
+        \item[Integer] - Stores a whole/integral number. Usually supported directly by hardware. Represented internally as a raw binary number. Can be signed or unsigned.
+        \item[Floating Point] - Usually represented using the IEEE 754 representation. These are often supported by hardware, but sometimes implemented in software. They have a high degree of error.
+        \item[Decimal] - Fixed precision decimal number. Usually represented as BCD (Binary Coded Decimal). These are exact with no round-off error.
+        \item[Boolean] - Usually represented by a single byte, with 0 representing false and other values representing true.
+    \end{description}
+\end{frame}
+
+\begin{frame}{Character Types}
+    \begin{description}
+        \item[Character] - A single character. Often this is how a programming language represents an individual byte.
+        \item[String] - A collection of characters. Sometimes additional attributes are stored.
+    \end{description}
+\end{frame}
+
+\begin{frame}{Reference Types}
+    \begin{description}
+        \item[Pointer] - A variable which stores the address of a value in memory. Often has type attributes associated with it.
+        \item[Reference] - An abstraction of a pointer. Provides an alias to an actual variable, or it can provide reference to a complex type (as in Java)
+    \end{description}
+\end{frame}
+
+\begin{frame}[fragile]{Enumerated Types}
+   \begin{itemize}
+       \item Types with a fixed range of labeled values.
+       \item For example, in C:
+       \begin{code}
+enum day {MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY};
+enum day d = TUESDAY;
+       \end{code}
+       \item Usually implemented as integers, internally.
+       \item Some languages perform error checking on the values.
+   \end{itemize} 
+\end{frame}
+
+\begin{frame}{Non-Scalar Types}
+    \begin{itemize}
+        \item Non-Scalar types store lists and groups of information.
+        \item \textbf{Arrays} - Homogeneous sequence of items.
+        \item \textbf{Associate Arrays} - Associates a key/value pair. Usually heterogeneous.
+        \item \textbf{Lists} - Usually internally a doubly linked list, can be heterogeneous.
+        \item \textbf{Tuple} - An immutable list.
+    \end{itemize}
+\end{frame}
+
+\section{User-Defined Types}
+\begin{frame}{User-Defined Types}
+    \begin{itemize}
+        \item First popularized in the ALGOL languages.
+        \item Data types derived through combinations of primitive types.
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]{Record Types}
+    \begin{itemize}
+        \item A record is formed out of several fields.
+        \item Example: structs in C/C++:\newline
+        \begin{code}
+struct point {
+    double x;
+    double y;
+};
+struct point p;
+p.x = 0;
+p.y = 0;
+        \end{code}
+        \item A record type has all of its fields present at all times. Its size is at least as big as the sum of the sizes of its fields.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Union Types}
+    \begin{itemize}
+        \item A union is a data structure that can take on one of several types.
+        \item Defined much like a record, but only one field contains data at a given point in time.
+        \item Example: union in C \newline
+        \begin{code}
+union eval_result {
+    int i;
+    double d;
+    float f;
+    char c;
+    void *ptr;
+};
+        \end{code}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Abstract Types}
+    \begin{itemize}
+        \item Abstract types include relationships between types.
+        \item The most common system of abstract types is Object Oriented Programming.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Object Oriented Programming}
+    \begin{block}{Object}
+    An \textbf{object} is any entity with state and behavior. 
+    \end{block}
+    
+    Elements of Object Oriented Programming
+    \begin{description}
+        \item[Abstraction] - Objects act like black boxes. Details are hidden.
+        \item[Encapsulation] - An object maintains its own internal state. It carries all necessary data within itself.
+        \item[Inheritance] - An object can be generalized by another object. 
+        \item[Polymorphism] - Code can be written to the most general case. An object can be referenced by any time from which it descends.
+    \end{description}
+\end{frame}
+
+\begin{frame}{Reading and Reference}
+    \begin{itemize}
+        \item Read Chapter 6 -- Data Types 
+        \item IEEE 754 Format: \href{https://www.geeksforgeeks.org/ieee-standard-754-floating-point-numbers/amp/}{https://www.geeksforgeeks.org/ieee-standard-754-floating-point-numbers/amp/}
+        \item BCD Format: \href{https://www.geeksforgeeks.org/bcd-or-binary-coded-decimal/}{https://www.geeksforgeeks.org/bcd-or-binary-coded-decimal/}
+    \end{itemize}
+\end{frame}
+\end{document}

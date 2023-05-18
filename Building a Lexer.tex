@@ -1,0 +1,176 @@
+% Uncomment for handout
+\def\HANDOUT{}
+
+
+\ifdefined\HANDOUT
+\documentclass[handout]{beamer}
+\usepackage{pgfpages}
+\pgfpagesuselayout{4 on 1}[letterpaper,landscape,border shrink=5mm]
+\else
+\documentclass{beamer}
+\fi
+
+\mode<presentation>
+{
+  \usetheme{Warsaw}
+  \definecolor{sered}{rgb}{0.78, 0.06, 0.18}
+  \definecolor{richblack}{rgb}{0.0, 0.0, 0.0}
+  \setbeamercolor{structure}{fg=sered,bg=richblack}
+  %\setbeamercovered{transparent}
+}
+
+
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{fancyvrb}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{esvect}
+
+\makeatletter
+\newcommand{\imagesource}[1]{{\centering\hfill\break\hbox{\scriptsize Image Source:\thinspace{\tiny\itshape #1}}\par}}
+\newcommand{\image}[3][\@nil]{%
+        \def\tmp{#1}%
+        \begin{center}
+        \ifx\tmp\@nnil
+            \includegraphics[max height = 0.55\textheight, max width = \textwidth]{images/#2}
+        \else
+            \includegraphics[max height = 0.50\textheight, max width = \textwidth]{images/#2}
+            \linebreak
+            #1
+        \fi
+        \linebreak
+        {\tiny Image Source:\thinspace{\tiny #3}}
+        \end{center}
+}
+
+\newenvironment{code}{%
+ \VerbatimEnvironment
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ \begin{BVerbatim}
+  }{
+  \end{BVerbatim}
+ \end{adjustbox}
+}
+
+
+\newenvironment{scaled}{%
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ }{
+ \end{adjustbox}
+}
+
+\title{Building a Lexer}
+
+
+\author{Robert Lowe}
+
+\institute[Southeast Missouri State University] % (optional, but mostly needed)
+{
+  Department of Computer Science\\
+  Southeast Missouri State University
+}
+
+\date[]{}
+\subject{}
+
+\pgfdeclareimage[height=1.0cm]{university-logo}{images/semo-logo}
+\logo{\pgfuseimage{university-logo}}
+
+
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% Structuring a talk is a difficult task and the following structure
+% may not be suitable. Here are some rules that apply for this
+% solution: 
+
+% - Exactly two or three sections (other than the summary).
+% - At *most* three subsections per section.
+% - Talk about 30s to 2min per frame. So there should be between about
+%   15 and 30 frames, all told.
+
+% - A conference audience is likely to know very little of what you
+%   are going to talk about. So *simplify*!
+% - In a 20min talk, getting the main ideas across is hard
+%   enough. Leave out details, even if it means being less precise than
+%   you think necessary.
+% - If you omit details that are vital to the proof/implementation,
+%   just say so once. Everybody will be happy with that.
+\begin{frame}{Phase 1 --- Lexer Framework}
+    \begin{enumerate}
+        \item Construct the Tokens class with 2 tokens, \texttt{INVALID} and \texttt{EOF}
+        \item Construct the \texttt{Lexeme} named tuple.
+        \item Create the \texttt{Lexer} class with the following methods:
+        \begin{itemize}
+            \item \texttt{read}
+            \item \texttt{consume}
+            \item \texttt{skip\_space}
+        \end{itemize}
+        \item Construct empty versions of the \texttt{group1}, \texttt{group2}, \texttt{group3} methods which return \texttt{False}
+        \item Construct the \texttt{next} method.
+        \item Construct the unit test for the lexer, and verify that it produces a stream of \texttt{INVALID} tokens terminating with an \texttt{EOF} token.
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}{Phase 2 --- Tokens and Group 1}
+    \begin{enumerate}
+        \item Define all the tokens.
+        \item Implement the \texttt{group1} function fully.
+        \begin{itemize}
+            \item The lexer functions should update \texttt{cur\_tok} on a match.
+            \item The lexer functions return \texttt{True} on match, \texttt{False} otherwise.
+            \item Lexer functions should call \texttt{consume} to consume all characters in their matched lexeme.
+            \item List the tokens as tuples of the form \texttt{(lex, Token)}
+        \end{itemize}
+        \item Test that the lexer identifies the group 1 tokens.
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]{Phase 3 --- Group 2 Tokens}
+    \begin{block}{Maintaining Possible Tokens}
+    \begin{code}
+remain = lambda s : [ tok for tok in tokens if tok[0].startswith(s) ]
+tokens = remain(s) 
+    \end{code}
+    \end{block}
+    \begin{enumerate}
+        \item Create the token list.
+        \item Use the above lambda to filter possible tokens.
+        \item Return the matching token and/or invalid.
+        \item Verify that the group 2 tokens are matched.
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}{Phase 4 --- Group 3 Tokens}
+    \begin{enumerate}
+        \item Subdivide the group 3 tokens into what they start with. Usually separating into letter and number groups.
+        \item Create functions for each subdivision.
+        \begin{itemize}
+            \item These functions will always return \texttt{True}
+            \item If they fail to match, they should set the \texttt{cur\_tok} field to invalid.
+        \end{itemize}
+        \item Call the appropriate function based on the contents of \texttt{cur\_char} when \texttt{group3} is called.
+        \item Verify that all tokens get matched.
+        \item Insert an invalid symbol and verify that invalid tokens are still matched.
+    \end{enumerate}
+\end{frame}
+
+\end{document}

@@ -1,0 +1,293 @@
+% Uncomment for handout
+\def\HANDOUT{}
+
+
+\ifdefined\HANDOUT
+\documentclass[handout]{beamer}
+\usepackage{pgfpages}
+\pgfpagesuselayout{4 on 1}[letterpaper,landscape,border shrink=5mm]
+\else
+\documentclass{beamer}
+\fi
+
+\mode<presentation>
+{
+  \usetheme{Warsaw}
+  \definecolor{sered}{rgb}{0.78, 0.06, 0.18}
+  \definecolor{richblack}{rgb}{0.0, 0.0, 0.0}
+  \setbeamercolor{structure}{fg=sered,bg=richblack}
+  %\setbeamercovered{transparent}
+}
+
+
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{fancyvrb}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{esvect}
+
+\makeatletter
+\newcommand{\imagesource}[1]{{\centering\hfill\break\hbox{\scriptsize Image Source:\thinspace{\tiny\itshape #1}}\par}}
+\newcommand{\image}[3][\@nil]{%
+        \def\tmp{#1}%
+        \begin{center}
+        \ifx\tmp\@nnil
+            \includegraphics[max height = 0.55\textheight, max width = \textwidth]{images/#2}
+        \else
+            \includegraphics[max height = 0.50\textheight, max width = \textwidth]{images/#2}
+            \linebreak
+            #1
+        \fi
+        \linebreak
+        {\tiny Image Source:\thinspace{\tiny #3}}
+        \end{center}
+}
+
+\newenvironment{code}{%
+ \VerbatimEnvironment
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ \begin{BVerbatim}
+  }{
+  \end{BVerbatim}
+ \end{adjustbox}
+}
+
+
+\newenvironment{scaled}{%
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ }{
+ \end{adjustbox}
+}
+
+\title{Introduction to Parsing}
+
+
+\author{Robert Lowe}
+
+\institute[Southeast Missouri State University] % (optional, but mostly needed)
+{
+  Department of Computer Science\\
+  Southeast Missouri State University
+}
+
+\date[]{}
+\subject{}
+
+\pgfdeclareimage[height=1.0cm]{university-logo}{images/semo-logo}
+\logo{\pgfuseimage{university-logo}}
+
+
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+
+% Structuring a talk is a difficult task and the following structure
+% may not be suitable. Here are some rules that apply for this
+% solution: 
+
+% - Exactly two or three sections (other than the summary).
+% - At *most* three subsections per section.
+% - Talk about 30s to 2min per frame. So there should be between about
+%   15 and 30 frames, all told.
+
+% - A conference audience is likely to know very little of what you
+%   are going to talk about. So *simplify*!
+% - In a 20min talk, getting the main ideas across is hard
+%   enough. Leave out details, even if it means being less precise than
+%   you think necessary.
+% - If you omit details that are vital to the proof/implementation,
+%   just say so once. Everybody will be happy with that.
+\section{The Parsing Problem}
+\begin{frame}{What is Parsing?}
+    \begin{itemize}
+        \item Parsing is working the generating problem backwards.
+        \item Given a sentence in a language, produce a parse tree for that sentence.
+        \item If no parse tree can be found, we reject the 
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Basic Approaches to Parsing}
+    \begin{description}
+        \item[Top-Down] We start with the root of the tree and build toward the leaves.
+        \begin{itemize}
+            \item Easiest to Implement
+            \item Generally Requires Grammar Constraints
+        \end{itemize}
+        \item[Bottom-Up] We start at the leaves and build toward the root.
+        \begin{itemize}
+            \item Difficult to Implement, Usually Machine Generated
+            \item Has Fewer Grammar Constraints
+        \end{itemize}
+    \end{description}
+\end{frame}
+
+\begin{frame}{A Top-Down Example: \texttt{2+3}}
+    \begin{columns}
+    \column{0.5\textwidth}
+    \begin{enumerate}[<+->]
+        \item expr
+        \item expr \texttt{+} term
+        \item term
+        \item num
+        \item \texttt{2}
+        \item num
+        \item \texttt{3}
+    \end{enumerate}
+    \column{0.5\textwidth}
+    \begin{center}
+        \begin{scaled}
+            \begin{tikzpicture}
+                    \node{exp}
+                        child {node {expr}
+                            child {node {term}
+                                child {node {num}
+                                    child {node {\texttt{2}}}}
+                            }
+                        }
+                        child {node {\texttt{+}}}
+                        child {node {term}
+                            child {node {num}
+                                child {node {\texttt{3}}}
+                            }
+                        }
+            \end{tikzpicture}
+        \end{scaled}
+    \end{center}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{A Bottom-Up Example: \texttt{2+3}} 
+    \begin{columns}
+    \column{0.5\textwidth}
+    \begin{enumerate}[<+->]
+        \item \texttt{3}
+        \item num
+        \item term 
+        \item \textt{2}
+        \item num
+        \item term
+        \item expr
+        \item expr \texttt{+} term
+        \item exp
+    \end{enumerate}
+    \column{0.5\textwidth}
+    \begin{center}
+        \begin{scaled}
+            \begin{tikzpicture}
+                    \node{exp}
+                        child {node {expr}
+                            child {node {term}
+                                child {node {num}
+                                    child {node {\texttt{2}}}}
+                            }
+                        }
+                        child {node {\texttt{+}}}
+                        child {node {term}
+                            child {node {num}
+                                child {node {\texttt{3}}}
+                            }
+                        }
+            \end{tikzpicture}
+        \end{scaled}
+    \end{center}
+    \end{columns}
+\end{frame}
+
+
+\section{Parsing Algorithms}
+\begin{frame}{The Complexity of Parsing}
+    \begin{itemize}
+        \item General parsing has complexity $O(n^3)$.
+        \item General parsing also has a $O(n^3)$ backtracking requirement.
+        \item With a few constraints, we can parse in $O(n)$ time!
+        \item Most computer languages can be parsed in linear time.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Classifications of Parsers}  
+    Parsers are classified according to the {\bf direction of scanning}, and the {\bf direction of derivation}.
+    \begin{description}
+        \item[LL] - Left-to-Right Scanning, Left most derivation.
+        \item[LR] - Left-to-Right Scanning, Right most derivation.
+    \end{description}
+    Parsers are further classified by how many tokens they must {\bf look ahead}.
+    \begin{description}
+        \item[LL$(k)$] - LL Parser with constant $k$ tokens of look-ahead.
+        \item[LR$(k)$] - LR Parser with constant $k$ tokens of look-ahead.
+        \item[LALR] - A simplified LR$(k)$ parser.
+    \end{description}
+\end{frame}
+\begin{frame}[fragile]{Recursive Descent Parsing}
+    \begin{itemize}
+        \item Recursive Descent Parsers are derived from the BNF.
+        \item Each non-terminal is expressed as a mutually recursive function.
+        \item RD Parsers have no backtracking.
+        \item Only apply to $LL(1)$ grammars!
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{LALR Parsers}
+    \begin{itemize}
+        \item Most typical example is the LALR$(1)$ parser.
+        \item Use a state table to maintain a list of possible derivations.
+        \item Performs a {\bf shift-reduce} operation in order to decrease possiblities list.
+        \item These are generally machine generated.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Compiler Compilers --- Parser Generators}
+    \begin{itemize}
+        \item Compiler Compilers generate parsers from a (typically) BNF-like syntax.
+        \item Most commercial compilers are created using these tools.
+        \item Notable Examples:
+        \begin{itemize}
+            \item YACC - Yet Another Compiler Compiler (C Parser Generator)
+            \item JACC - Just Another Compiler Compiler (Java Parser Generator)
+            \item PLY - Python-Lex-Yacc (Python Lexer and Parser Generator)
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{YACC Example}
+\begin{code}
+%left '+' '-'
+%left '*' '/' 
+
+%% 
+expr:    '(' expr ')'    { $$ = $2; }
+         | expr '*' expr { $$.a = $1.a * $3.a; }
+         | expr '/' expr { $$.a = $1.a / $3.a; }
+         | expr '+' expr { $$.a = $1.a + $3.a; }
+         | expr '-' expr { $$.a = $1.a - $3.a; }
+\end{code}
+\end{frame}
+
+
+\begin{frame}{Reading Assignment}
+    Read the rest of Chapter 4 (4.3 to the end of the chapter.)
+\end{frame}
+
+\end{document}
+

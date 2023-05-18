@@ -1,0 +1,320 @@
+% Uncomment for handout
+\def\HANDOUT{}
+
+
+\ifdefined\HANDOUT 
+\documentclass[handout]{beamer}
+\usepackage{pgfpages}
+\pgfpagesuselayout{4 on 1}[letterpaper,landscape,border shrink=5mm]
+\else
+\documentclass{beamer}
+\fi
+
+\mode<presentation>
+{
+  \usetheme{Warsaw}
+  \definecolor{sered}{rgb}{0.78, 0.06, 0.18}
+  \definecolor{richblack}{rgb}{0.0, 0.0, 0.0}
+  \setbeamercolor{structure}{fg=sered,bg=richblack}
+  %\setbeamercovered{transparent}
+}
+
+
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{fancyvrb}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{esvect}
+
+\makeatletter
+\newcommand{\imagesource}[1]{{\centering\hfill\break\hbox{\scriptsize Image Source:\thinspace{\tiny\itshape #1}}\par}}
+\newcommand{\image}[3][\@nil]{%
+        \def\tmp{#1}%
+        \begin{center}
+        \ifx\tmp\@nnil
+            \includegraphics[max height = 0.55\textheight, max width = \textwidth]{images/#2}
+        \else
+            \includegraphics[max height = 0.50\textheight, max width = \textwidth]{images/#2}
+            \linebreak
+            #1
+        \fi
+        \linebreak
+        {\tiny Image Source:\thinspace{\tiny #3}}
+        \end{center}
+}
+
+\newenvironment{code}{%
+ \VerbatimEnvironment
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ \begin{BVerbatim}
+  }{
+  \end{BVerbatim}
+ \end{adjustbox}
+}
+
+
+\newenvironment{scaled}{%
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ }{
+ \end{adjustbox}
+}
+
+\title{Structured Programming}
+
+
+\author{Robert Lowe}
+
+\institute[Southeast Missouri State University] % (optional, but mostly needed)
+{
+  Department of Computer Science\\
+  Southeast Missouri State University
+}
+
+\date[]{}
+\subject{}
+
+\pgfdeclareimage[height=1.0cm]{university-logo}{images/semo-logo}
+\logo{\pgfuseimage{university-logo}}
+
+
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+
+% Structuring a talk is a difficult task and the following structure
+% may not be suitable. Here are some rules that apply for this
+% solution: 
+
+% - Exactly two or three sections (other than the summary).
+% - At *most* three subsections per section.
+% - Talk about 30s to 2min per frame. So there should be between about
+%   15 and 30 frames, all told.
+
+% - A conference audience is likely to know very little of what you
+%   are going to talk about. So *simplify*!
+% - In a 20min talk, getting the main ideas across is hard
+%   enough. Leave out details, even if it means being less precise than
+%   you think necessary.
+% - If you omit details that are vital to the proof/implementation,
+%   just say so once. Everybody will be happy with that.
+
+\section{Pure Imperative Programming}
+
+\begin{frame}{The Imperative Paradigm}
+\begin{block}{Imperative Programming}
+Imperative programming is completely about state.
+\end{block} 
+\begin{itemize}
+    \item Imperative Programs control state.
+    \item Typically jumps to location in code to perform logic.
+    \item Most machine code ISAs are imperative.
+    \item The oldest form of programming.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]{BASIC}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{itemize}
+    \item Beginner's All Purpose Symbolic Instruction Code (BASIC) is a high-level imperative language.
+    \item There is one loop structure \texttt{FOR}.
+    \item All other logic is controlled by \texttt{GOTO} and conditional jumps.
+\end{itemize}
+\column{0.5\textwidth}
+\begin{code}
+10  REM Fizz Buzz, The classic puzzle
+20  INPUT "How far should I count? "; MAX
+30  FOR I = 1 TO MAX
+40  OUT$ = ""
+50  IF I MOD 3 <> 0 THEN GOTO 70
+60  OUT$ = OUT$ + "Fizz "
+70  IF I MOD 5 <> 0 THEN GOTO 90
+80  OUT$ = OUT$ + "Buzz"
+90  IF OUT$ = "" THEN GOTO 120
+100 PRINT OUT$
+110 GOTO 130
+120 PRINT I
+130 NEXT I
+\end{code}
+\end{columns}    
+\end{frame}
+
+
+\begin{frame}[fragile]{The Problem}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{itemize}
+    \item It is difficult to see the overall structure of an imperative program.
+    \item Analyzing code means hand-tracing its path of execution.
+    \item Maintainability and Readability suffer.
+    \item The problem is often called ``Spaghetti Code.''
+\end{itemize}
+\column{0.5\textwidth}
+\begin{code}
+10  REM Fizz Buzz, The classic puzzle
+20  INPUT "How far should I count? "; MAX
+30  FOR I = 1 TO MAX
+40  OUT$ = ""
+50  IF I MOD 3 <> 0 THEN GOTO 70
+60  OUT$ = OUT$ + "Fizz "
+70  IF I MOD 5 <> 0 THEN GOTO 90
+80  OUT$ = OUT$ + "Buzz"
+90  IF OUT$ = "" THEN GOTO 120
+100 PRINT OUT$
+110 GOTO 130
+120 PRINT I
+130 NEXT I
+\end{code}
+\end{columns}    
+    
+\end{frame}
+
+\section{Structured Programming}
+\begin{frame}{Go To Considered Harmful}
+\begin{columns}
+\column{0.6\textwidth}
+\begin{itemize}
+    \item Edsger Dijkstra published an open letter to CACM in 1968.
+    \item Advocates against the use of Go To statements as they obscure the intent of the programming.
+    \item Coined the term ``structured programming''
+    \item Most modern languages follow the structured programming paradigm.
+\end{itemize}
+\column{0.4\textwidth}
+\image[Edsger Dijkstra\newline1930 -- 2002]{dijkstra}{Wikipedia}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}{Elements of Structured Programming}
+    \begin{itemize}
+        \item No explicit jumps.
+        \item Branch Structures
+        \item Loop Structures
+        \item Blocks
+        \item Subroutines and Functions
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile,t]{Branches and Loops}
+\begin{columns}[t]
+\column{0.5\textwidth}
+\begin{block}{Branches}
+\begin{code}
+if( condition ) {
+  // Executed if True
+} else {
+  // Executed if False
+}
+\end{code}
+\end{block}
+\column{0.5\textwidth}
+\begin{block}{Loops}
+\begin{code}
+while(condition) {
+   //body
+}
+
+do {
+   //body
+} while(condition);
+
+for(init; condition; update) {
+  //body
+}
+\end{code}
+\end{block}
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Blocks}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{itemize}
+    \item Blocks form the bodies of loops, branches, and procedures.
+    \item Blocks can be nested.
+    \item Blocks define neat regions of scope and intention.
+\end{itemize}
+\column{0.5\textwidth}
+\begin{block}{Blocks}
+\begin{code}
+for(int i=1; i<=10; i++) {
+  System.out.println(i);
+}
+\end{code}
+\end{block}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}[fragile]{Subroutines}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{itemize}
+    \item Subroutines have exactly one entry point.
+    \item Subroutines have exactly one exit point.
+\end{itemize}
+\column{0.5\textwidth}
+\begin{block}{Subroutine}
+\begin{code}
+void count(int max) 
+{
+    for(int i=1; i<=max; i++) {
+        System.out.println(i);
+    }
+}
+\end{code}
+\end{block}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}{Why \texttt{goto} Still Exists}
+\begin{columns}
+\column{0.6\textwidth}
+\begin{itemize}
+    \item There are some common operations which do not work well in pure structured languages.
+    \item Error handling is one prominent example.
+    \item We frequently violate structured programming by:
+    \begin{itemize}
+        \item Throwing exceptions.
+        \item Having multiple exit points to subroutines.
+        \item Using \texttt{goto} to have a common error handler.
+    \end{itemize}
+\end{itemize}
+\column{0.4\textwidth}
+\image[Donald Knuth\newline1938--]{knuth}{Wikipedia}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Reading Assignment}
+    \begin{itemize}
+        \item \textit{Go To Considered Harmful} by Edsger Dijkstra
+        \item \textit{Structured Programming with Go To} by Donald Knuth
+    \end{itemize}
+\end{frame}
+
+\end{document}

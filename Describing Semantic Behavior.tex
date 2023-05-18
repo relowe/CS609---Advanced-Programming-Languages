@@ -1,0 +1,391 @@
+% Uncomment for handout
+\def\HANDOUT{}
+
+
+\ifdefined\HANDOUT
+\documentclass[handout]{beamer}
+\usepackage{pgfpages}
+\pgfpagesuselayout{4 on 1}[letterpaper,landscape,border shrink=5mm]
+\else
+\documentclass{beamer}
+\fi
+
+\mode<presentation>
+{
+  \usetheme{Warsaw}
+  \definecolor{sered}{rgb}{0.78, 0.06, 0.18}
+  \definecolor{richblack}{rgb}{0.0, 0.0, 0.0}
+  \setbeamercolor{structure}{fg=sered,bg=richblack}
+  %\setbeamercovered{transparent}
+}
+
+
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{fancyvrb}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{esvect}
+
+\makeatletter
+\newcommand{\imagesource}[1]{{\centering\hfill\break\hbox{\scriptsize Image Source:\thinspace{\tiny\itshape #1}}\par}}
+\newcommand{\image}[3][\@nil]{%
+        \def\tmp{#1}%
+        \begin{center}
+        \ifx\tmp\@nnil
+            \includegraphics[max height = 0.55\textheight, max width = \textwidth]{images/#2}
+        \else
+            \includegraphics[max height = 0.50\textheight, max width = \textwidth]{images/#2}
+            \linebreak
+            #1
+        \fi
+        \linebreak
+        {\tiny Image Source:\thinspace{\tiny #3}}
+        \end{center}
+}
+
+\newenvironment{code}{%
+ \VerbatimEnvironment
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ \begin{BVerbatim}
+  }{
+  \end{BVerbatim}
+ \end{adjustbox}
+}
+
+\title{Describing Semantic Behavior}
+
+\author{Robert Lowe}
+
+\institute[Southeast Missouri State University] % (optional, but mostly needed)
+{
+  Department of Computer Science\\
+  Southeast Missouri State University
+}
+
+\date[]{}
+\subject{}
+
+\pgfdeclareimage[height=1.0cm]{university-logo}{images/semo-logo}
+\logo{\pgfuseimage{university-logo}}
+
+
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+
+% Structuring a talk is a difficult task and the following structure
+% may not be suitable. Here are some rules that apply for this
+% solution: 
+
+% - Exactly two or three sections (other than the summary).
+% - At *most* three subsections per section.
+% - Talk about 30s to 2min per frame. So there should be between about
+%   15 and 30 frames, all told.
+
+% - A conference audience is likely to know very little of what you
+%   are going to talk about. So *simplify*!
+% - In a 20min talk, getting the main ideas across is hard
+%   enough. Leave out details, even if it means being less precise than
+%   you think necessary.
+% - If you omit details that are vital to the proof/implementation,
+%   just say so once. Everybody will be happy with that.
+
+\section {Wrapping up BNF}
+
+\begin{frame}[fragile]{Is there a problem here?}
+\begin{code}
+< Start >      ::= < Expression >
+
+< Expression > ::= < Expression > "+" < Term > 
+                   | < Expression > "-" < Term >
+                   | < Term >
+
+< Term >       ::= < Term > "*" < Number >
+                   | < Term > "/" < Number >
+                   | < Number >
+
+< Number >     ::= < Number > < Digit > 
+                   | < Digit >
+
+< Digit >      ::= "0" | "1"
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Actually, NO! }
+\begin{columns}
+\column{0.6\textwidth}
+We can repeat operations without ambiguity:
+
+\begin{code}
+
+< Expression > + < Term >
+     |
+[ < Expression > + < Term > ] + < Term >
+      |
+[[ < Term > ] + < Term >]] + < Term > 
+      |
+[[ < Number > ] + < Term >]] + < Term > 
+                     |
+[[ < Number > ] + < Number >]] + < Term > 
+                                    |
+[[ < Number > ] + < Number >]] + < Number > 
+      
+\end{code}
+
+\column{0.3\textwidth}
+\begin{block}{Rules}
+\begin{code}
+< Expression > ::= 
+   < Expression > "+" < Term > 
+   | < Expression > "-" < Term >
+   | < Term >
+
+< Term > ::= 
+   < Term > "*" < Number >
+   | < Term > "/" < Number >
+   | < Number >
+\end{code}
+\end{block}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}[fragile]{Defining a simplified C-Like Language}
+\begin{columns}
+\column{0.3\textwidth}
+\begin{code}
+int main() 
+{
+    int x;
+    real r;
+    
+    x = input();
+    while( x > 0 ) {
+        r = r + x;
+    }
+    
+    print(r/2);
+}
+\end{code}
+
+\column{0.7\textwidth}
+\begin{block}{Programs and Functions}
+\begin{code}
+< Program > ::= 
+    < Function-Def >
+    | <  Program > < Function-Def >
+    
+< Function-Def > ::=
+    < Signature > < Block >
+
+< Signature > ::=
+    < Type > < Identifier > "(" ")"
+    | < Type > < Identifier > "(" < Params > ")"
+    
+< Params > ::=
+    < Params > "," < Decl >
+    | < Decl>
+    
+< Block > ::= 
+    "{" < Statement-List > "}"
+    | "{" "}"
+
+< Statement-List > ::=
+    < Statement-List > < Statement >
+    | < Statement >
+\end{code}
+\end{block}
+\end{columns}
+\end{frame}
+
+
+
+\begin{frame}[fragile]{Defining a simplified C-Like Language (Ctd.)}
+\begin{columns}
+\column{0.3\textwidth}
+\begin{code}
+int main() 
+{
+    int x;
+    real r;
+    
+    x = input();
+    while( x > 0 ) {
+        r = r + x;
+    }
+    
+    print(r/2);
+}
+\end{code}
+
+\column{0.7\textwidth}
+\begin{block}{ Statements }
+\begin{code}
+< Statement > ::= 
+    < Decl > ";" | < Assign > ";" | < Expr > ";" 
+    | < Call > ";" | < While > 
+
+< Decl > ::= 
+    < Type > < Identifier >
+    
+< Type > :: = "real" | "int"
+    
+< Assign > ::=
+    < Identifier > "=" < Expr > 
+    
+< Call > ::=
+    < Identifier > "(" ")"
+    | < Identifier > "(" < Args > ")" 
+
+< Args > ::=
+    < Args > "," < Expr >
+    | < Expr >
+    
+< While > ::=
+    "while" "(" < Expr > ")" < Statement >
+    | "while" "(" < Expr > ")" < Block >
+\end{code}
+\end{block}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}[fragile]{Defining a simplified C-Like Language (Ctd.)}
+\begin{columns}
+\column{0.3\textwidth}
+\begin{code}
+int main() 
+{
+    int x;
+    real r;
+    
+    x = input();
+    while( x > 0 ) {
+        r = r + x;
+    }
+    
+    print(r/2);
+}
+\end{code}
+
+\column{0.7\textwidth}
+\begin{block}{ Expressions }
+\begin{code}
+< Expr > ::= < Expr > "<" < Sum > 
+             | < Sum >
+
+< Sum >  ::= < Sum > "+" < Mul >
+             | < Sum > "-" < Mul >
+             | < Mul >
+
+< Mul >  ::= < Mul > "*" < Value >
+             | < Mul > "/" < Value >
+             | < Value >
+             
+< Value > ::= < Number >
+             | < Identifier >
+             | < Call >
+             
+< Identifier > ::= < Identifier > < Letter >
+                   | < Letter >
+\end{code}
+\end{block}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}[fragile]{BNF Definition of BNF's Syntax}
+\begin{code}
+<syntax>         ::= <rule> | <rule> <syntax>
+<rule>           ::= <opt-whitespace> "<" <rule-name> ">" <opt-whitespace> "::=" <opt-whitespace> <expression> <line-end>
+<opt-whitespace> ::= " " <opt-whitespace> | ""
+<expression>     ::= <list> | <list> <opt-whitespace> "|" <opt-whitespace> <expression>
+<line-end>       ::= <opt-whitespace> <EOL> | <line-end> <line-end>
+<list>           ::= <term> | <term> <opt-whitespace> <list>
+<term>           ::= <literal> | "<" <rule-name> ">"
+<literal>        ::= '"' <text1> '"' | "'" <text2> "'"
+<text1>          ::= "" | <character1> <text1>
+<text2>          ::= '' | <character2> <text2>
+<character>      ::= <letter> | <digit> | <symbol>
+<letter>         ::= "A" | "B" | "C" | "D" | "E"  | "F" | "G" | "H" | "I" | "J"  | "K" | "L" | "M" | "N" | "O" 
+                     | "P" | "Q" | "R" | "S" | "T"  | "U" | "V" | "W" | "X" | "Y" | "Z" 
+                     | "a" | "b" | "c" | "d" | "e"  | "f" | "g" | "h" | "i" | "j"  | "k" | "l" | "m" | "n" | "o" 
+                     | "p" | "q" | "r" | "s" | "t"  | "u" | "v" | "w" | "x" | "y" | "z"
+<digit>          ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
+<symbol>         ::=  "|" | " " | "!" | "#" | "$"  | "%" | "&" | "(" | ")" | "*"  | "+" | "," | "-" | "." | "/" 
+                      | ":" | ";" | ">" | "=" | "<"  | "?" | "@" | "[" | "\" | "]"  | "^" | "_" | "`" | "{" | "}" | "~"
+<character1>     ::= <character> | "'"
+<character2>     ::= <character> | '"'
+<rule-name>      ::= <letter> | <rule-name> <rule-char>
+<rule-char>      ::= <letter> | <digit> | "-"
+\end{code}
+    
+\end{frame}
+\section {Describing Semantic Behavior}
+
+\begin{frame}{Semantic and Syntactic Domain}
+    \begin{itemize}
+        \item {\bf Syntactic Domain} -- Form of a language.
+        \item {\bf Semantic Domain} -- Meaning/Behavior of a language.
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]{Informal Semantics}
+    \begin{itemize}
+        \item Write a description for the behavior of logical sentential forms.
+        \item For example:
+        \begin{code}
+<While> ::= "while" "(" < Expr > ")" < Block >
+
+If the expression is true, execute the block and then repeat.
+    NOTE: True is defined as any non-zero value.
+        \end{code}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Formal Semantics}
+    \begin{itemize}
+        \item There also exists formalisms to describe semantics. One example is Hoare logic.
+        \item $p \{S\} q$ is a formal statement that when $p$ is true, executing $S$ will cause $q$ to be true.
+        \item Example:
+        \begin{enumerate}
+            \item Let $p$ be the statement \texttt{< Expr >} is true.
+            \item $p \{$ \texttt{< Block >} $\} p$ implies repetition.
+            \item $p \{$ \texttt{< Block >} $\} \neg p$ halts.
+            \item $\neg p$ skips block entirely.
+        \end{enumerate}
+        \item Such formalisms are really only done if we wish to prove a mathematical property of a language.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Reading Assignment}
+    \begin{itemize}
+        \item Finish your reading of Chapter 3
+        \item Read \textit{An Axiomatic Basis for Computer Programming} by C.A.R. Hoare (Hoare69.pdf)
+    \end{itemize}
+\end{frame}
+
+\end{document}

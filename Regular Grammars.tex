@@ -1,0 +1,437 @@
+% Uncomment for handout
+%\def\HANDOUT{}
+
+
+\ifdefined\HANDOUT
+\documentclass[handout]{beamer}
+\usepackage{pgfpages}
+\pgfpagesuselayout{4 on 1}[letterpaper,landscape,border shrink=5mm]
+\else
+\documentclass{beamer}
+\fi
+
+\mode<presentation>
+{
+  \usetheme{Warsaw}
+  \definecolor{sered}{rgb}{0.78, 0.06, 0.18}
+  \definecolor{richblack}{rgb}{0.0, 0.0, 0.0}
+  \setbeamercolor{structure}{fg=sered,bg=richblack}
+  %\setbeamercovered{transparent}
+}
+
+
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{fancyvrb}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{esvect}
+\usepackage{smartdiagram}
+
+\usetikzlibrary{arrows,automata,positioning,calc}
+
+\makeatletter
+\newcommand{\imagesource}[1]{{\centering\hfill\break\hbox{\scriptsize Image Source:\thinspace{\tiny\itshape #1}}\par}}
+\newcommand{\image}[3][\@nil]{%
+        \def\tmp{#1}%
+        \begin{center}
+        \ifx\tmp\@nnil
+            \includegraphics[max height = 0.55\textheight, max width = \textwidth]{images/#2}
+        \else
+            \includegraphics[max height = 0.50\textheight, max width = \textwidth]{images/#2}
+            \linebreak
+            #1
+        \fi
+        \linebreak
+        {\tiny Image Source:\thinspace{\tiny #3}}
+        \end{center}
+}
+
+\newenvironment{code}{%
+ \VerbatimEnvironment
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ \begin{BVerbatim}
+  }{
+  \end{BVerbatim}
+ \end{adjustbox}
+}
+
+\newenvironment{scaled}{%
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ }{
+ \end{adjustbox}
+}
+
+\title{Regular Grammars}
+
+
+\author{Robert Lowe}
+
+\institute[Southeast Missouri State University] % (optional, but mostly needed)
+{
+  Department of Computer Science\\
+  Southeast Missouri State University
+}
+
+\date[]{}
+\subject{}
+
+\pgfdeclareimage[height=1.0cm]{university-logo}{images/semo-logo}
+\logo{\pgfuseimage{university-logo}}
+
+
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+
+% Structuring a talk is a difficult task and the following structure
+% may not be suitable. Here are some rules that apply for this
+% solution: 
+
+% - Exactly two or three sections (other than the summary).
+% - At *most* three subsections per section.
+% - Talk about 30s to 2min per frame. So there should be between about
+%   15 and 30 frames, all told.
+
+% - A conference audience is likely to know very little of what you
+%   are going to talk about. So *simplify*!
+% - In a 20min talk, getting the main ideas across is hard
+%   enough. Leave out details, even if it means being less precise than
+%   you think necessary.
+% - If you omit details that are vital to the proof/implementation,
+%   just say so once. Everybody will be happy with that.
+\section {Regular Grammars}
+\begin{frame}{Left and Right Regular Grammars}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{block}{Left Regular Grammar}
+    \begin{align*}
+        A & \rightarrow a \\
+        A & \rightarrow Ba
+    \end{align*}
+\end{block}
+
+\column{0.5\textwidth}
+\begin{block}{Right Regular Grammar}
+    \begin{align*}
+        A & \rightarrow a \\
+        A & \rightarrow aB
+    \end{align*}
+\end{block}
+
+\end{columns}
+
+\vspace{1cm}
+{\bf Definitions}
+\begin{itemize}
+    \item $A,B$ --- non-terminal
+    \item $a$ --- terminal
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{Beware Mixed Grammars}
+\begin{columns}
+\column{0.5\textwidth}
+{\bf Regular}
+\begin{align*}
+    A & \rightarrow aB \\
+    B & \rightarrow Cb \\
+    C & \rightarrow cC \\
+    C & \rightarrow c
+\end{align*}
+\column{0.5\textwidth}
+{\bf Context Free}
+\begin{align*}
+    S & \rightarrow aA \\
+    A & \rightarrow Sb \\
+    S & \rightarrow \epsilon
+\end{align*}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}{Example Regular Languages}
+\begin{enumerate}
+    \item $L = \{ac^nb : n \geq 1\}$
+    \item $L = \{d^m | d^m.d^n : m \geq 1, n\geq1, d=0\ldots 9\}$
+    \item $L = \{\mathrm{while} | \mathrm{int} | \mathrm{real} | letter^n : n\geq 1\}$ 
+\end{enumerate}
+\end{frame}
+
+
+\begin{frame}{Regular Expressions}
+\begin{itemize}
+    \item Character Matching
+    \begin{itemize}
+        \item Literal Character, matches itself
+        \item \texttt{\bf .} Wildcard, matches any character
+    \end{itemize}
+    \item Quantifiers (Applies to Preceding Character or Group) 
+    \begin{itemize}
+        \item \texttt{\bf *} Zero or More
+        \item \texttt{\bf +} One or More
+        \item \texttt{\bf ?} Zero or One
+    \end{itemize}
+    \item Grouping
+    \begin{itemize}
+        \item \texttt{\bf ( )} Group
+        \item \texttt{\bf |} Or
+    \end{itemize}
+    \item Common Abbreviations
+    \begin{itemize}
+        \item \texttt{\bf [A-Z,a-z,0-9]} Character Ranges
+    \end{itemize}
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}[fragile]{Example Regular Expressions}
+\begin{enumerate}
+    \item $L = \{ac^nb : n \geq 1\}$ \newline
+    \begin{code}
+ac+b
+    \end{code}
+    \vspace{1cm}
+    \item $L = \{d^m | d^m.d^n : m \geq 1, n\geq1, d=0\ldots 9\}$ \newline
+    \begin{code}
+[0-9]+|[0-9]+\.[0-9]+
+    \end{code}
+    \vspace{1cm}
+    \item $L = \{\mathrm{while} | \mathrm{int} | \mathrm{real} | letter^n : n\geq 1\}$ \newline
+    \begin{code}
+while|int|real|[a-zA-Z]+
+    \end{code}
+\end{enumerate}
+\end{frame}
+
+
+\section {Finite State Automatons}
+\begin{frame}{Recognizing a Regular Language}
+    \begin{itemize}
+        \item All regular languages can be recognized by a finite state automaton.
+        \item A finite state automaton scans its input character by character and transitions among states.
+        \item If the automaton stops in an accepting state, the string matches. Otherwise it does not. 
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}{Finite State Automata}
+\[
+M = \langle Q, \Sigma, \delta, q_0, F\rangle
+\]
+\begin{description}
+\item[$Q$] Finite Set of States
+\item[$\Sigma$] Finite Alphabet
+\item[$\delta$] Transition Function $Q \times \Sigma \rightarrow Q$ 
+\item[$q_0$] Initial State $\q_0 \in Q$
+\item[$F$] Set of Final/Accepting State $f\in Q$
+\end{description}
+\end{frame}
+
+
+\begin{frame}{Example Finite State Automaton}
+\[
+L=\{ac^nb:n \geq 1\}
+\]
+\begin{align*}
+    Q = & \{q_0, q_1, q_2, q_3, q_4\} \\
+    \Sigma = & \{a, b, c \} \\
+    \delta = & \{ ((q_0, a), q_1),  ((q_0, b), q_4), ((q_0, c), q_4), \\
+             & \ \ ((q_1, a), q_4),  ((q_1, b), q_4), ((q_1, c), q_2), \\
+             & \ \ ((q_2, a), q_4),  ((q_2, b), q_3), ((q_2, c), q_2) \\
+             & \ \ ((q_3, a), q_4),  ((q_3, b), q_4), ((q_3, c), q_4) \\
+             & \ \ ((q_4, a), q_4),  ((q_4, b), q_4), ((q_4, c), q_4) \\
+             &\} \\
+    q_0 = & q_0 \\
+    F = & \{ q_3 \}
+\end{align*}
+\end{frame}
+
+\begin{frame}{Graphical Finite State Automaton}
+\[
+L=\{ac^nb:n \geq 1\}
+\]
+\begin{center}
+\begin{scaled}
+\begin{tikzpicture}[node distance=2cm,auto]
+    \node[state, initial] (q0) {$q_0$};
+    \node[state] (q1) [right of=q0] {$q_1$};
+    \node[state] (q2) [right of=q1] {$q_2$};
+    \node[state,accepting] (q3) [right of=q2] {$q_3$};
+    \node[state] (q4) [below = of $(q1)!0.5!(q2)$] {$q_4$};
+    
+    \path[->]
+    (q0) edge [bend left] node {\texttt{a}} (q1)
+    (q1) edge [bend left] node {\texttt{c}} (q2)
+    (q2) edge [loop above] node {\texttt{c}} ( )
+    (q2) edge [bend left] node {\texttt{b}} (q3)
+    (q0) edge [bend right] node {\texttt{b,c}} (q4)
+    (q1) edge [bend right] node {\texttt{a,b}} (q4)
+    (q2) edge [bend left] node {\texttt{a,b}} (q4)
+    (q3) edge [bend left] node {\texttt{a,b,c}} (q4)
+    (q4) edge [loop below] node {\texttt{a,b,c}} ()
+    
+\end{tikzpicture}
+\end{scaled}
+\end{center}
+\end{frame}
+
+\begin{frame}{Abbreviated Graphical Finite State Automaton}
+    \[
+    L=\{ac^nb:n \geq 1\}
+    \]
+    \begin{center}
+    \begin{scaled}
+    \begin{tikzpicture}[node distance=2cm,auto]
+        \node[state, initial] (q0) {$q_0$};
+        \node[state] (q1) [right of=q0] {$q_1$};
+        \node[state] (q2) [right of=q1] {$q_2$};
+        \node[state,accepting] (q3) [right of=q2] {$q_3$};
+        
+        \path[->]
+        (q0) edge [bend left] node {\texttt{a}} (q1)
+        (q1) edge [bend left] node {\texttt{c}} (q2)
+        (q2) edge [loop above] node {\texttt{c}} ( )
+        (q2) edge [bend left] node {\texttt{b}} (q3)
+        
+    \end{tikzpicture}
+    \end{scaled}
+    
+    \vspace{1cm}
+    We usually only show valid transitions and just assume a universal ``rejection'' state!
+    \end{center}
+\end{frame}
+
+\begin{frame}{Number Grammar}
+    \[
+    L = \{d^m | d^m.d^n : m \geq 1, n\geq1, d=0\ldots 9\}
+    \]
+    
+    \begin{center}
+    \begin{scaled}
+    \begin{tikzpicture}[node distance=2cm,auto]
+        \node[state,initial] (q0) {$q_0$};
+        \node[state,accepting] (I) [right of=q0]{$I$};
+        \node[state] (q1) [below of=I] {$q_1$};
+        \node[state,accepting] (R) [right of=q1] {$R$};
+        
+        \path[->]
+        (q0) edge [bend left] node {$0\ldots 9$} (I)
+        (I) edge [loop above] node {$0\ldots 9$} ( )
+        (I) edge [bend right] node {\texttt{.}} (q1)
+        (q1) edge [bend left] node {$0\ldots9$} (R)
+        (R) edge [loop right] node {$0\ldots 9$} ()
+    \end{tikzpicture}
+    \end{scaled}
+    \end{center}
+\end{frame}
+
+\begin{frame}{Keyword Literal Grammar}
+    \[
+        L = \{\mathrm{while} | \mathrm{int} | \mathrm{real} | letter^n : n\geq 1\}
+    \]
+    \begin{center}
+    \begin{adjustbox}{max width=\textwidth, max height=0.55\textheight}
+    \begin{tikzpicture}[node distance=2cm,auto]
+        \node[state,initial] (q0) {$q_0$};
+        \node[state] (w0) [above right of=q0] {$w_0$};
+        \node[state] (i0) [above left of=q0] {$i_0$};
+        \node[state,accepting] (L) [below of=q0] {$L$};
+        \node[state] (w1) [right of=w0] {$w_1$};
+        \node[state] (w2) [right of=w1] {$w_2$};
+        \node[state] (w3) [right of=w2] {$w_3$};
+        \node[state,accepting] (W) [right of=w3] {$W$};
+        \node[state] (i1) [left of=i0] {$i_1$};
+        \node[state,accepting] (I) [left of=i1] {$I$};
+        \node[state] (r1) [below left of=L] {$r_1$};
+        \node[state] (r0) [left of=r1] {$r_0$};
+        \node[state] (r2) [right of=r1] {$r_2$};
+        \node[state,accepting] (R) [right of=r2]{$R$};
+        
+        \path[->]
+        (q0) edge [bend left] node {\texttt{w}} (w0)
+        (w0) edge [bend left] node {\texttt{h}} (w1)
+        (w1) edge [bend left] node {\texttt{i}} (w2)
+        (w2) edge [bend left] node {\texttt{l}} (w3)
+        (w3) edge [bend left] node {\texttt{e}} (W)
+        
+        (q0) edge [bend right] node {\texttt{i}} (i0)
+        (i0) edge [bend left] node {\texttt{n}} (i1)
+        (i1) edge [bend left] node {\texttt{t}} (I)
+        
+        (q0) edge [bend right] node {\texttt{r}} (r0)
+        (r0) edge [bend left] node {\texttt{e}} (r1)
+        (r1) edge [bend left] node {\texttt{a}} (r2)
+        (r2) edge [bend left] node {\texttt{l}} (R)
+        
+        (q0) edge [bend right] node {$*$} (L)
+        (w0) edge [bend left] node {$*$} (L)
+        (w1) edge [bend left] node {$*$} (L)
+        (w2) edge [bend left] node {$*$} (L)
+        (w3) edge [bend left] node {$*$} (L)
+        (W) edge [bend left] node {$*$} (L)
+        (i0) edge [bend right] node {$*$} (L)
+        (i1) edge [bend right] node {$*$} (L)
+        (I) edge [bend right] node {$*$} (L)
+        (r0) edge [bend left] node {$*$} (L)
+        (r1) edge [bend left] node {$*$} (L)
+        (r2) edge [bend right] node {$*$} (L)
+        (R) edge [bend right] node {$*$} (L)
+    \end{tikzpicture}
+    \end{adjustbox}
+    \end{center}
+\end{frame}
+
+
+\section {Lexical Analysis and Parsing}
+\begin{frame}{Processing a Programming Language}
+\smartdiagramset{back arrow disabled=true}
+\smartdiagram[flow diagram:horizontal]{Source, Lexer, Parser, Processor}
+
+\vspace{1cm}
+\begin{enumerate}
+    \item The source code is read by the lexical analyzer or {\bf lexer}.
+    \item The lexer recognizes the regular portion of the grammar, producing a stream of {\bf tokens}.
+    \item The {\bf parser} reads the tokens and recognizes the context free portion of the grammar.
+    \item The {\bf processor} processes the data structure built by the parser.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Dividing the Grammar}
+    \begin{enumerate}
+        \item Extract all the terminal strings and give them token labels.
+        \item Replace terminal strings with token labels.
+        \item Extract all regular rules and give them token labels.
+        \item Replace all regular rules with token labels.
+        \item Repeat steps 3 and 4 taking care that the lexer grammar is still regular.
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}{Reading Assignment}
+    Read Chapters 4.1 -- 4.2
+\end{frame}
+
+\end{document}

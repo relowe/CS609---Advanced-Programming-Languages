@@ -1,0 +1,366 @@
+% Uncomment for handout
+\def\HANDOUT{}
+
+
+\ifdefined\HANDOUT
+\documentclass[handout]{beamer}
+\usepackage{pgfpages}
+\pgfpagesuselayout{4 on 1}[letterpaper,landscape,border shrink=5mm]
+\else
+\documentclass{beamer}
+\fi
+
+\mode<presentation>
+{
+  \usetheme{Warsaw}
+  \definecolor{sered}{rgb}{0.78, 0.06, 0.18}
+  \definecolor{richblack}{rgb}{0.0, 0.0, 0.0}
+  \setbeamercolor{structure}{fg=sered,bg=richblack}
+  %\setbeamercovered{transparent}
+}
+
+
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{fancyvrb}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{esvect}
+
+\makeatletter
+\newcommand{\imagesource}[1]{{\centering\hfill\break\hbox{\scriptsize Image Source:\thinspace{\tiny\itshape #1}}\par}}
+\newcommand{\image}[3][\@nil]{%
+        \def\tmp{#1}%
+        \begin{center}
+        \ifx\tmp\@nnil
+            \includegraphics[max height = 0.55\textheight, max width = \textwidth]{images/#2}
+        \else
+            \includegraphics[max height = 0.50\textheight, max width = \textwidth]{images/#2}
+            \linebreak
+            #1
+        \fi
+        \linebreak
+        {\tiny Image Source:\thinspace{\tiny #3}}
+        \end{center}
+}
+
+\newenvironment{code}{%
+ \VerbatimEnvironment
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ \begin{BVerbatim}
+  }{
+  \end{BVerbatim}
+ \end{adjustbox}
+}
+
+
+\newenvironment{scaled}{%
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ }{
+ \end{adjustbox}
+}
+
+\title{Traversing the Parse Tree}
+
+
+\author{Robert Lowe}
+
+\institute[Southeast Missouri State University] % (optional, but mostly needed)
+{
+  Department of Computer Science\\
+  Southeast Missouri State University
+}
+
+\date[]{}
+\subject{}
+
+\pgfdeclareimage[height=1.0cm]{university-logo}{images/semo-logo}
+\logo{\pgfuseimage{university-logo}}
+
+
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+
+% Structuring a talk is a difficult task and the following structure
+% may not be suitable. Here are some rules that apply for this
+% solution: 
+
+% - Exactly two or three sections (other than the summary).
+% - At *most* three subsections per section.
+% - Talk about 30s to 2min per frame. So there should be between about
+%   15 and 30 frames, all told.
+
+% - A conference audience is likely to know very little of what you
+%   are going to talk about. So *simplify*!
+% - In a 20min talk, getting the main ideas across is hard
+%   enough. Leave out details, even if it means being less precise than
+%   you think necessary.
+% - If you omit details that are vital to the proof/implementation,
+%   just say so once. Everybody will be happy with that.
+\section{Introduction to Parse Tree Evaluation}
+\begin{frame}[fragile]{An Example Parse Tree}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{code}
+BEGIN
+    NUMBER x
+    
+    x := 2 * (3+2)
+    PRINT X
+END
+\end{code}
+
+\column{0.5\textwidth}
+\begin{scaled}
+\begin{tikzpicture}
+    \node {Block}
+        child { 
+            node { Decl }
+        }
+        child { node {\texttt{:=}}
+            child { node {\texttt{x}}}
+            child { node {\texttt{*}}
+                child {node {\texttt{2}}}
+                child {node {\texttt{+}}
+                    child {node {\texttt{3}}}
+                    child {node {\texttt{2}}}
+                }
+            }
+        }
+        child { node {\texttt{PRINT}}
+            child{node {\texttt{x}}}
+        }
+\end{tikzpicture}
+\end{scaled}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Traversal and Evaluation}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{itemize}
+    \item Traverse the tree in a pre-order traversal.
+    \item Visit the children to get the operands.
+    \item Then we evaluate our operation and return it higher up the tree.
+\end{itemize}
+\column{0.5\textwidth}
+\begin{scaled}
+\begin{tikzpicture}
+    \node {Block}
+        child { 
+            node {(1) Decl }
+        }
+        child { node {(8) \texttt{:=}}
+            child { node {(2) \texttt{x}}}
+            child { node {(7)\texttt{*}}
+                child {node {(3) \texttt{2}}}
+                child {node {(6)\texttt{+}}
+                    child {node {(4) \texttt{3}}}
+                    child {node {(5) \texttt{2}}}
+                }
+            }
+        }
+        child { node {(10)\texttt{PRINT}}
+            child{node {(9) \texttt{x}}}
+        }
+\end{tikzpicture}
+\end{scaled}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Building the Parse Tree Structure}
+    \begin{itemize}
+        \item Each parser rule function returns a node.
+        \item We build a list of child nodes and then return our node as we make recursive calls.
+        \item These nodes should all be something which can be evaluated.
+        \item The start symbol returns the parse tree of the program.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Psuedocode for Tree Evaluation}
+\begin{code}
+def evaluate(tree):
+    operands = empty list
+    for each child of tree:
+        operands.append(evaluate(child))
+    perform the operation specified by tree on the operands
+    return the result
+\end{code}
+\end{frame}
+
+\section{The lis.py Interpreter}
+\begin{frame}[fragile]{The \texttt{lis.py} Syntax}
+\begin{code}
+< s_expression >    ::= < atomic_symbol >
+                        | < list >
+
+
+< list >            ::= "(" < s_expression > < list_part > ")"
+
+
+< list_part>        ::= < s_expression > < list_part >
+                        | ""
+
+
+< atomic_symbol >   ::= < letter > < atom_part >
+
+
+< atom_part >       ::= < symbol > < atom_part >
+                        | ""
+
+< symbol > is any symbol other than "(" or ")"
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Example \texttt{lis.py} code}
+    \begin{block}{Basic Syntax}
+    \begin{code}
+    (operation arg1 arg2 ... argn)
+    \end{code}
+    \end{block}
+    
+    \begin{code}
+   
+    
+(display (quote (hello world)))
+(display (+ 2 2))
+(display (* 2 (+ 3 2)))
+    \end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Lexer}
+\begin{code}
+def tokenize(s: str) -> list[str]:
+    "Convert a string into a list of tokens."
+    return s.replace('(', ' ( ').replace(')', ' ) ').split()
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Parser}
+\begin{code}
+def parse(program: str) -> Expression:
+    "Read a Scheme expression from a string."
+    return read_from_tokens(tokenize(program))
+
+def read_from_tokens(tokens: list[str]) -> Expression:
+    "Read an expression from a sequence of tokens."
+    if len(tokens) == 0:
+        raise SyntaxError('unexpected EOF while reading')
+    token = tokens.pop(0)
+    if '(' == token:
+        exp = []
+        while tokens[0] != ')':
+            exp.append(read_from_tokens(tokens))
+        tokens.pop(0)  # discard ')'
+        return exp
+    elif ')' == token:
+        raise SyntaxError('unexpected )')
+    else:
+        return parse_atom(token)
+        
+def parse_atom(token: str) -> Atom:
+    "Numbers become numbers; every other token is a symbol."
+    try:
+        return int(token)
+    except ValueError:
+        try:
+            return float(token)
+        except ValueError:
+            return Symbol(token)
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Environments and Pre-Defined Functions}
+\begin{code}
+class Environment(ChainMap[Symbol, Any]):
+    "A ChainMap that allows changing an item in-place."
+
+    def change(self, key: Symbol, value: object) -> None:
+        "Find where key is defined and change the value there."
+        for map in self.maps:
+            if key in map:
+                map[key] = value  # type: ignore[index]
+                return
+        raise KeyError(key)
+
+
+def standard_env() -> Environment:
+    "An environment with some Scheme standard procedures."
+    env = Environment()
+    env.update(vars(math))   # sin, cos, sqrt, pi, ...
+    env.update({
+            '+': op.add,
+            '-': op.sub,
+            '*': op.mul,
+            
+            ...
+            
+    See lis.py for the rest
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Evaluation}
+\begin{code}
+def evaluate(exp: Expression, env: Environment) -> Any:
+    "Evaluate an expression in an environment."
+    if isinstance(exp, Symbol):      # variable reference
+        return env[exp]
+# end::EVAL_IF_TOP[]
+    elif not isinstance(exp, list):  # constant literal
+        return exp
+# tag::EVAL_IF_MIDDLE[]
+    elif exp[0] == 'quote':          # (quote exp)
+        (_, x) = exp
+        return x
+    elif exp[0] == 'if':             # (if test conseq alt)
+        (_, test, consequence, alternative) = exp
+        if evaluate(test, env):
+            return evaluate(consequence, env)
+        else:
+            return evaluate(alternative, env)
+    elif exp[0] == 'lambda':         # lambda
+        (_, parms, *body) = exp
+        return Procedure(parms, body, env)
+    elif exp[0] == 'define':
+        (_, name, value_exp) = exp
+        env[name] = evaluate(value_exp, env)
+# end::EVAL_IF_MIDDLE[]
+    elif exp[0] == 'set!':
+        (_, name, value_exp) = exp
+        env.change(name, evaluate(value_exp, env))
+    else:                          # (proc args)
+        (func_exp, *args) = exp
+        proc = evaluate(func_exp, env)
+        args = [evaluate(arg, env) for arg in args]
+        return proc(*args)
+\end{code}
+\end{frame}
+
+\begin{frame}{Reading Assignment}
+(How to Write a (Lisp) Interpreter (in Python)) by Peter Norvig\newline
+\url{http://www.norvig.com/lispy.html}
+\end{frame}
+\end{document}
+

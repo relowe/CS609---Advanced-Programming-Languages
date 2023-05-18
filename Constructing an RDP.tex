@@ -1,0 +1,739 @@
+% Uncomment for handout
+\def\HANDOUT{}
+
+
+\ifdefined\HANDOUT
+\documentclass[handout]{beamer}
+\usepackage{pgfpages}
+\pgfpagesuselayout{4 on 1}[letterpaper,landscape,border shrink=5mm]
+\else
+\documentclass{beamer}
+\fi
+
+\mode<presentation>
+{
+  \usetheme{Warsaw}
+  \definecolor{sered}{rgb}{0.78, 0.06, 0.18}
+  \definecolor{richblack}{rgb}{0.0, 0.0, 0.0}
+  \setbeamercolor{structure}{fg=sered,bg=richblack}
+  %\setbeamercovered{transparent}
+}
+
+
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{fancyvrb}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{esvect}
+
+\makeatletter
+\newcommand{\imagesource}[1]{{\centering\hfill\break\hbox{\scriptsize Image Source:\thinspace{\tiny\itshape #1}}\par}}
+\newcommand{\image}[3][\@nil]{%
+        \def\tmp{#1}%
+        \begin{center}
+        \ifx\tmp\@nnil
+            \includegraphics[max height = 0.55\textheight, max width = \textwidth]{images/#2}
+        \else
+            \includegraphics[max height = 0.50\textheight, max width = \textwidth]{images/#2}
+            \linebreak
+            #1
+        \fi
+        \linebreak
+        {\tiny Image Source:\thinspace{\tiny #3}}
+        \end{center}
+}
+
+\newenvironment{code}{%
+ \VerbatimEnvironment
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ \begin{BVerbatim}
+  }{
+  \end{BVerbatim}
+ \end{adjustbox}
+}
+
+
+\newenvironment{scaled}{%
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ }{
+ \end{adjustbox}
+}
+
+\title{Constructing and Recursive Descent Parser}
+
+
+\author{Robert Lowe}
+
+\institute[Southeast Missouri State University] % (optional, but mostly needed)
+{
+  Department of Computer Science\\
+  Southeast Missouri State University
+}
+
+\date[]{}
+\subject{}
+
+\pgfdeclareimage[height=1.0cm]{university-logo}{images/semo-logo}
+\logo{\pgfuseimage{university-logo}}
+
+
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+
+% Structuring a talk is a difficult task and the following structure
+% may not be suitable. Here are some rules that apply for this
+% solution: 
+
+% - Exactly two or three sections (other than the summary).
+% - At *most* three subsections per section.
+% - Talk about 30s to 2min per frame. So there should be between about
+%   15 and 30 frames, all told.
+
+% - A conference audience is likely to know very little of what you
+%   are going to talk about. So *simplify*!
+% - In a 20min talk, getting the main ideas across is hard
+%   enough. Leave out details, even if it means being less precise than
+%   you think necessary.
+% - If you omit details that are vital to the proof/implementation,
+%   just say so once. Everybody will be happy with that.
+\section{Preparing the Grammar}
+\begin{frame}{Basic Steps}
+    \begin{enumerate}
+        \item Remove Left Recursion
+        \item Compute First and Follow Sets
+        \item Restructure Rules to be LL(1)
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}[t,fragile]{Remove Left Recursion -- Part 1}
+\begin{columns}[t]
+\column{0.5\textwidth}
+{\tiny\bf Original}
+
+\begin{code}
+< Program > ::= 
+    < Function-Def >
+    | <  Program > < Function-Def >
+
+
+
+
+< Function-Def > ::= 
+    < Signature > < Block >
+
+< Signature > ::= 
+    < Type > IDENTIFIER LPAREN RPAREN
+    | < Type > IDENTIFIER LPAREN < Params > RPAREN
+
+< Params > ::= 
+    < Params > COMMA < Decl >
+    | < Decl>
+   
+   
+    
+< Block > ::= 
+    LBRACE < Statement-List > RBRACE
+    | LBRACE RBRACE
+
+< Statement-List > ::= 
+    < Statement-List > < Statement >
+    | < Statement >
+\end{code}
+\column{0.5\textwidth}
+{\tiny\bf Corrected}
+
+\begin{code}
+< Program > ::=
+    < Function-Def > < Program' > 
+
+< Program' > ::=
+    < Function-Def > < Program' >
+    | ""
+
+< Function-Def > ::= 
+    < Signature > < Block >
+
+< Signature > ::=
+    < Type > IDENTIFIER LPAREN RPAREN
+    | < Type > IDENTIFIER LPAREN < Params > RPAREN
+
+< Params > ::= 
+    < Decl > < Params' >
+    
+< Params' > ::= 
+    COMMA < Decl > < Params' >
+    | ""
+    
+< Block > ::=
+    LBRACE < Statement-List > RBRACE
+    | LBRACE RBRACE
+
+< Statement-List > ::= 
+    < Statement > < Statement-List' >
+
+< Statement-List' > ::= 
+    < Statement > < Statement-List' >
+    | ""
+\end{code}
+\end{columns}
+\end{frame}
+
+\begin{frame}[t,fragile]{Remove Left Recursion -- Part 2}
+\begin{columns}[t]
+\column{0.5\textwidth}
+{\bf\tiny Original}
+
+\begin{code}
+< Statement > ::= 
+    < Decl > SEMI
+    | < Assign > SEMI
+    | < Expr > SEMI
+    | < Call > SEMI
+    | < While > 
+    | < If > 
+
+< Decl > ::= 
+    < Type > IDENTIFIER
+
+< Type > ::=
+    REAL | INT
+
+< Assign > ::= 
+    IDENTIFIER ASSIGN < Expr > 
+
+< Call > ::= 
+    IDENTIFIER LPAREN RPAREN
+    | IDENTIFIER LPAREN < Args > RPAREN
+
+< Args > ::=
+    < Args > COMMA < Expr >
+    | < Expr >
+
+
+
+
+< While > ::= 
+    WHILE LPAREN < Expr > RPAREN < Statement >
+    | WHILE LPAREN < Expr > RPAREN < Block >
+
+< If > ::= 
+    IF LPAREN < Expr > RPAREN < Statement >
+    | IF LPAREN < Expr > RPAREN < Block >
+\end{code}
+\column{0.5\textwidth}
+{\bf\tiny Corrected}
+
+\begin{code}
+< Statement > ::= 
+    < Decl > SEMI
+    | < Assign > SEMI
+    | < Expr > SEMI
+    | < Call > SEMI
+    | < While > 
+    | < If > 
+
+< Decl > ::=
+    < Type > IDENTIFIER
+
+< Type > ::= 
+    REAL | INT
+    
+< Assign > ::= 
+    IDENTIFIER ASSIGN < Expr > 
+
+< Call > ::= 
+    IDENTIFIER LPAREN RPAREN
+    | IDENTIFIER LPAREN < Args > RPAREN
+
+< Args > ::=
+    < Expr > < Args' >
+
+< Args' > ::= 
+    COMMA < Expr > < Args' >
+    | ""
+
+< While > ::= 
+    WHILE LPAREN < Expr > RPAREN < Statement >
+    | WHILE LPAREN < Expr > RPAREN < Block >
+
+< If > ::= 
+    IF LPAREN < Expr > RPAREN < Statement >
+    | IF LPAREN < Expr > RPAREN < Block >
+\end{code}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}[t,fragile]{Remove Left Recursion -- Part 3}
+\begin{columns}[t]
+\column{0.5\textwidth}
+{\bf\tiny Original}
+
+\begin{code}
+< Expr > ::= 
+    < Expr > LT < Sum > 
+    | < Expr > LTE < Sum >
+    | < Expr > GT < Sum >
+    | < Expr > GTE < Sum >
+    | < Expr > EQUAL < Sum >
+    | < Sum >
+
+
+
+
+< Sum > ::= < Sum > PLUS < Mul >
+    | < Sum > MINUS < Mul >
+    | < Mul >
+
+
+
+
+
+< Mul > ::= 
+    < Mul > TIMES < Value >
+    | < Mul > DIVIDE < Value >
+    | < Value >
+
+
+
+
+< Value > ::= 
+    < Number >
+    | IDENTIFIER
+    | < Call >
+
+< Number > ::= INTNUM | REALNUM
+\end{code}
+\column{0.5\textwidth}
+{\bf\tiny Corrected}
+
+\begin{code}
+< Expr > ::= 
+    < Sum > < Expr' >
+
+< Expr' > ::= 
+    LT < Sum > < Expr' > 
+    | LTE < Sum > < Expr' >
+    | GT < Sum > < Expr' >
+    | GTE < Sum > < Expr' >
+    | EQUAL < Sum > < Expr' >
+    | ""
+
+< Sum > ::= 
+    < Mul > < Sum' >
+
+< Sum' > ::=
+    PLUS < Mul > < Sum' >
+    | MINUS < Mul > < Sum' >
+    | ""
+
+< Mul > ::= 
+    < Value > < Mul' > 
+
+< Mul' > ::=
+    TIMES < Value > < Mul' >
+    | DIVIDE < Value > < Mul' >
+    | ""
+
+< Value > ::= 
+    < Number >
+    | IDENTIFIER
+    | < Call >
+    | LPAREN < Expr > RPAREN
+
+< Number >::=  INTNUM | REALNUM
+\end{code}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}[fragile]{Build First and Follow and Fix Problems -- Part 1}
+\begin{code}
+< Program' >        ::= < Function-Def > < Program' >
+                        | ""
+  - First(< Function-Def > < Program' >) = First( < Type > ) = { REAL, INT }
+  - Follow(< Program' >) = Follow(< Program >) = { EOF }
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Build First and Follow and Fix Problems -- Part 2}
+\begin{code}
+< Signature >       ::= < Type > IDENTIFIER LPAREN RPAREN
+                        | < Type > IDENTIFIER LPAREN < Params > RPAREN
+  - First(< Type > IDENTIFIER LPAREN RPAREN) = First(< Type >)
+  - First(< Type > IDENTIFIER LPAREN < Params > RPAREN) = First(< Type >)
+  - First(< Type >) = { REAL, INT }
+\end{code}
+\pause
+
+\begin{code}
+
+
+Solution
+========
+< Signature >       ::= < Type > IDENTIFIER LPAREN < Signature' >
+
+< Signature' >      ::= < Params > RPAREN
+                        | RPAREN
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Build First and Follow and Fix Problems -- Part 3}
+\begin{code}
+< Params' >         ::= COMMA < Decl > < Params' >
+                        | ""
+  - First(COMMA < Decl > < Params' >) = { COMMA }
+  - Follow(< Params' >) = { RPAREN }
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Build First and Follow and Fix Problems -- Part 4}
+\begin{code}
+< Block >           ::= LBRACE < Statement-List > RBRACE
+                        | LBRACE RBRACE
+  - First(LBRACE < Statement-List > RBRACE) = { LBRACE }
+  - First(LBRACE RBRACE) = { LBRACE }
+\end{code}
+\pause
+\begin{code}
+
+
+Solution
+========
+< Block >           ::= LBRACE < Block' >
+
+< Block' >          ::= RBRACE
+                        | < Statement-List > RBRACE
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Build First and Follow and Fix Problems -- Part 5}
+\begin{code}
+< Statement-List' > ::= < Statement > < Statement-List' >
+                        | ""
+  - First(< Statement > < Statement-List' >) = First(Statement)
+  - First(< Statement >) = { REAL, INT, IDENTIFIER, INTNUM, REALNUM, LPAREN, WHILE, IF }
+  - Follow(< Statement-List' >) = { RBRACE }
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Build First and Follow and Fix Problems -- Part 6}
+\begin{code}
+< Statement >       ::= < Decl > SEMI
+                        | < Assign > SEMI
+                        | < Expr > SEMI
+                        | < Call > SEMI
+                        | < While > 
+                        | < If > 
+  - First(< Decl > SEMI) = First(< Decl >) = First(< Type >) = { REAL, INT }
+  - First(< Assign > SEMI) = First(< Assign >) = { IDENTIFIER }
+  - First(< Expr > SEMI) = First( < Expr > ) = { IDENTIFIER, INTNUM, REALNUM, LPAREN }
+  - First(< Call > SEMI) = First(< Call >) = { IDENTIFIER }
+  - First(< While >) = First(< While >) = { WHILE }
+  - First(< If >) = First(< If >) = { IF }
+
+
+< Call >            ::= IDENTIFIER LPAREN RPAREN
+                        | IDENTIFIER LPAREN < Args > RPAREN
+  - First(IDENTIFIER LPAREN RPAREN) = { IDENTIFER }
+  - First(IDENTIFIER LPAREN < Args > RPAREN) = { IDENTIFIER }
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Build First and Follow and Fix Problems -- Part 6}
+\begin{code}
+Solution
+========
+< Statement >       ::= < Decl > SEMI
+                        | IDENTIFIER < Statement' > SEMI
+                        | < While > 
+                        | < If > 
+                        | < Expr > SEMI
+
+
+< Statement' >      ::= ASSIGN < Expr >
+                        | LPAREN < Call' >
+                        | < Expr' >
+                        
+< Call' >            ::= RPAREN
+                        | < Args > RPAREN
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Build First and Follow and Fix Problems -- Part 7}
+\begin{code}
+< Args' >           ::= COMMA < Expr > < Args' >
+                        | ""
+  - First(COMMA < Expr > < Args' >) = { COMMA }
+  - Follow(< Args' >) = { RPAREN }
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Build First and Follow and Fix Problems -- Part 8}
+\begin{code}
+< While >           ::= WHILE LPAREN < Expr > RPAREN < Statement >
+                        | WHILE LPAREN < Expr > RPAREN < Block >
+  - First(WHILE LPAREN < Expr > RPAREN < Statement >) = { WHILE }
+  - First(WHILE LPAREN < Expr > RPAREN < Block >) = { WHILE }
+
+
+< If >              ::= IF LPAREN < Expr > RPAREN < Statement >
+                        | IF LPAREN < Expr > RPAREN < Block >
+  - First(IF LPAREN < Expr > RPAREN < Statement >) = { IF }
+  - First(IF LPAREN < Expr > RPAREN < Block >) = { IF }
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Build First and Follow and Fix Problems -- Part 8}
+\begin{code}
+Solution
+========
+< While >           ::= WHILE LPAREN < Expr > RPAREN < Body >
+
+
+< If >              ::= IF LPAREN < Expr > RPAREN < Body >
+
+
+< Body >            ::= < Block >
+                        | Statement
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Build First and Follow and Fix Problems -- Part 9}
+\begin{code}
+< Expr' >           ::= LT < Sum > < Expr' > 
+                        | LTE < Sum > < Expr' >
+                        | GT < Sum > < Expr' >
+                        | GTE < Sum > < Expr' >
+                        | EQUAL < Sum > < Expr' >
+                        | ""
+  - First(LT < Sum > < Expr' >) = { LT }
+  - First(LTE < Sum > < Expr' >) = { LTE }
+  - First(GT < Sum > < Expr' >) = { GT }
+  - First(GTE < Sum > < Expr' >) = { GTE }
+  - First(EQUAL < Sum > < Expr' >) = { EQUAL }
+  - Follow(< Expr' >) = Follow(< Expr >) = { RPAREN, SEMI, COMMA }
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Build First and Follow and Fix Problems -- Part 10}
+\begin{code}
+< Sum' >            ::=  PLUS < Mul > < Sum' >
+                        | MINUS < Mul > < Sum' >
+                        | ""
+  - First(PLUS < Mul > < Sum' >) = { PLUS }
+  - First(MINUS < Mul > < Sum' >) = { MINUS }
+  - Follow(< Sum' >) = Follow( < Expr' >) = { RPAREN, SEMI, COMMA }
+
+
+< Mul' >            ::=  TIMES < Value > < Mul' >
+                        | DIVIDE < Value > < Mul' >
+                        | ""
+  - First(TIMES < Value > < Mul' >) = { TIMES }
+  - First(DIVIDE < Value > < Mul' >) = { DIVIDE }
+  - Follow(< Mul' >) = Follow( < Sum' >) = { RPAREN, SEMI, COMMA }
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Build First and Follow and Fix Problems -- Part 11}
+\begin{code}
+< Value >           ::= < Number >
+                        | IDENTIFIER
+                        | < Call >
+                        | LPAREN < Expr > RPAREN
+  - First(< Number >) = { INTNUM, REALNUM }
+  - First(IDENTIFIER) = { IDENTIFIER }
+  - First(< Call >) = { IDENTIFIER }
+  - Follow(< Value >) = Follow(< Mul' >) = { RPAREN, SEMI, COMMA }
+\end{code}
+\pause
+\begin{code}
+
+
+Solution
+========
+< Value >           ::= < Number >
+                        | IDENTIFIER < Value' >
+                        | LPAREN < Expr > RPAREN
+
+< Value' >          ::= LPAREN < Call' >
+                        | ""
+\end{code}
+\end{frame}
+
+\section{Constructing the Basic Parser}
+\begin{frame}{The Parser Object}
+    \begin{itemize}
+        \item Public Interface
+        \begin{itemize}
+            \item A constructor which accepts a \texttt{Lexer} object.
+            \item A function called \textt{parse} which returns true on success, false on failure.
+        \end{itemize}
+        \item Internal State
+        \begin{itemize}
+            \item \texttt{lexer} -- The token stream
+            \item \texttt{errors} -- The number of errors we have experienced during parsing.
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}{Internal Functions}
+    \begin{itemize}
+        \item \texttt{next} -- Advance the lexer to the next token
+        \item \texttt{match} -- Matches a token or list of tokens.
+        \item \texttt{have} -- Matches token or list of tokens, on success advances lexer
+        \item \texttt{must\_be} -- Attempts to match token(s), prints error on failure. Advances the lexer.
+        \item \texttt{parse\_<rule>} -- Mutually recursive functions derived from the bnf.
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]{The Initial Class}
+\begin{code}
+class Parser:
+    """
+    A recursive descent parser, which uses a token stream from the lexer object.
+    """
+
+    def __init__(self, lexer):
+        self.lexer = lexer
+        self.errors = 0
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{\texttt{next}}
+\begin{code}
+    def next(self):
+        """
+        Advance the lexer to the next token.
+        """
+        lexer.next()
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{\texttt{match}}
+\begin{code}
+    def match(self, token):
+        """
+        Attempts to match the current token to token. If token is an iterable
+        object, then we attempt to match any of the items in token.
+        Returns True on a match, False otherwise.
+        """
+
+        # iterable logic
+        if hasattr(token, '__iter__'):
+            return self.lexer.cur_tok.token in token
+
+        # singular comparison logic
+        return self.lexer.cur_tok.token == token
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{\texttt{have}}
+\begin{code}
+    def have(self, token):
+        """
+        Returns True and advances the lexer if token is the current token.
+        Returns False otherwise.
+        """
+        if self.match(token):
+            self.next()
+            return True
+        return False
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{\texttt{must\_be}}
+\begin{code}
+    def must_be(self, token, error_msg="Unexpected Token"):
+        """
+        Advances the lexer if token is the current token.
+        Sets error state to true, advances the lexer, and prints the error
+        message otherwise.
+        """
+        # check for success
+        if self.match(token):
+            self.next()
+            return
+
+        # error!
+        self.errors += 1
+        error_tok = self.lexer.cur_tok
+        self.next()
+        print("Error: %s %s:\"%s\" at Line %d Column %d"%(error_msg, 
+            error_tok.token, error_tok.lex, error_tok.line, error_tok.col))
+\end{code}
+\end{frame}
+
+\section{Constructing Production Rules}
+\begin{frame}[fragile]{The Basic Idea}
+Given something like:
+
+\begin{code}
+< A > ::= T1 < B >
+         |T2 < C >
+         |T3 < A >
+         
+         
+\end{code}
+
+Produce something like:
+
+\begin{code}
+
+
+def parse_a(self):
+    if self.have(Token.T1):
+        self.parse_b()
+    elif self.have(Token.T2):
+        self.parse_c()
+    elif self.have(Token.T3):
+        self.parse_a()
+\end{code}
+\end{frame}
+
+\begin{frame}{Nuances and Subtleties}
+    \begin{itemize}
+        \item Sometimes we can combine rules to cut down on the number of functions.
+        \item Some rules can be written iteratively rather than recursively. This is more effecient.
+        \item Some rules do require a bit of care.
+        \item Let's write the parser for the toyc language so you can see what I mean!
+    \end{itemize}
+\end{frame}
+
+\end{document}

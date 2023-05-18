@@ -1,0 +1,263 @@
+% Uncomment for handout
+\def\HANDOUT{}
+
+
+\ifdefined\HANDOUT
+\documentclass[handout]{beamer}
+\usepackage{pgfpages}
+\pgfpagesuselayout{4 on 1}[letterpaper,landscape,border shrink=5mm]
+\else
+\documentclass{beamer}
+\fi
+
+\mode<presentation>
+{
+  \usetheme{Warsaw}
+  \definecolor{sered}{rgb}{0.78, 0.06, 0.18}
+  \definecolor{richblack}{rgb}{0.0, 0.0, 0.0}
+  \setbeamercolor{structure}{fg=sered,bg=richblack}
+  %\setbeamercovered{transparent}
+}
+
+
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{fancyvrb}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{esvect}
+
+\makeatletter
+\newcommand{\imagesource}[1]{{\centering\hfill\break\hbox{\scriptsize Image Source:\thinspace{\tiny\itshape #1}}\par}}
+\newcommand{\image}[3][\@nil]{%
+        \def\tmp{#1}%
+        \begin{center}
+        \ifx\tmp\@nnil
+            \includegraphics[max height = 0.55\textheight, max width = \textwidth]{images/#2}
+        \else
+            \includegraphics[max height = 0.50\textheight, max width = \textwidth]{images/#2}
+            \linebreak
+            #1
+        \fi
+        \linebreak
+        {\tiny Image Source:\thinspace{\tiny #3}}
+        \end{center}
+}
+
+\newenvironment{code}{%
+ \VerbatimEnvironment
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ \begin{BVerbatim}
+  }{
+  \end{BVerbatim}
+ \end{adjustbox}
+}
+
+
+\newenvironment{scaled}{%
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ }{
+ \end{adjustbox}
+}
+
+\title{Expressions and Evaluation}
+
+
+\author{Robert Lowe}
+
+\institute[Southeast Missouri State University] % (optional, but mostly needed)
+{
+  Department of Computer Science\\
+  Southeast Missouri State University
+}
+
+\date[]{}
+\subject{}
+
+\pgfdeclareimage[height=1.0cm]{university-logo}{images/semo-logo}
+\logo{\pgfuseimage{university-logo}}
+
+
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+
+% Structuring a talk is a difficult task and the following structure
+% may not be suitable. Here are some rules that apply for this
+% solution: 
+
+% - Exactly two or three sections (other than the summary).
+% - At *most* three subsections per section.
+% - Talk about 30s to 2min per frame. So there should be between about
+%   15 and 30 frames, all told.
+
+% - A conference audience is likely to know very little of what you
+%   are going to talk about. So *simplify*!
+% - In a 20min talk, getting the main ideas across is hard
+%   enough. Leave out details, even if it means being less precise than
+%   you think necessary.
+% - If you omit details that are vital to the proof/implementation,
+%   just say so once. Everybody will be happy with that.
+
+\section{Expression Effects}
+\begin{frame}{Effects and Side Effects}
+    \begin{block}{Definitions}
+        \begin{itemize} 
+            \item An \textbf{effect} of an expression is the result which replaces the expression.
+            \item A \textbf{side effect} of an expression is a result that happens along with this replacement. This is usually some external state change or input/output result.
+        \end{itemize}
+    \end{block}
+    \begin{itemize}
+        \item Assignment Statements
+        \begin{itemize}
+            \item Effect: Returns the value that was assigned.
+            \item Side Effect: Stores a value in memory.
+        \end{itemize}
+        \item Arithmetic Expressions
+        \begin{itemize}
+            \item Effect: The value of the arithmetic evaluation.
+            \item Side Effect: None
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Example: C++}
+\begin{code}
+Effect                                   Side Effect
+======                                   ===========
+cout << "Hello, World" << endl;      ==> Displays Hello, World
+     ||
+     \/
+     cout << endl;                   ==> Displays End Of Line
+          ||
+          \/
+         cout 
+\end{code}
+\end{frame}
+
+\begin{frame}{Functional Programming and Expressions}
+    \begin{itemize}
+        \item In functional programming, expressions have no side-effects.
+        \item This allows expressions to be processed independently, and sometimes out of order.
+    \end{itemize}
+\end{frame}
+
+\section{Expression Types}
+
+\begin{frame}{Arithmetic Expressions}
+    \begin{itemize}
+        \item Arithmetic expressions evaluate to their arithmetic value.
+        \item Typically, these have no side effects.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Overloaded Operators}
+    \begin{itemize}
+        \item Operator overloading allows user types to participate in the language's expression syntax.
+        \item This can be abused when programmers create unexpected side effects to operations.
+        \item Generally, operator overloading is constrained in most modern languages.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Assignment as an Expression}
+\begin{code}
+Effect             Side Effect
+======             ===========
+x = y = z = 2; ==> z is assigned 2
+         ||
+         \/
+ x = y = 2;    ==> y is assigned 2
+      ||
+      \/
+    x = 2;     ==> x is assigned 2
+      ||
+      \/
+      2
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Type Conversion}
+\begin{itemize}
+    \item Type conversions can be implicit, as in type coercion.
+    \item Type conversions can also be explicit, as in C/C++/Java's typecast operators:
+    \newline
+    \begin{code}
+    
+Effect
+======
+(int) 9.0
+    ||
+    \/
+    9
+    
+    \end{code}
+    \item Typically type conversion have no side effects.
+\end{itemize}
+\end{frame}
+
+\section{Evaluation Strategies}
+\begin{frame}{Operand Evaluation}
+    \begin{itemize}
+        \item For left associative operators: process all operands left to right then evaluate the expression.
+        \item For right associative operators: process all operands right to left, then evaluate the expression.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Short Circuit Evaluation}
+    \begin{itemize}
+        \item \textbf{Short circuit evaluation} is where we stop evaluating operands if the answer becomes inevitable.
+        \item Typically done with boolean operations: \texttt{&&}, \texttt{||}
+        \[
+        \begin{array}{cc|c|c}
+        a & b & a \&\& b & a || b \\
+        \hline
+        F & F & F & F \\
+        F & T & F & T \\
+        T & F & F & T \\
+        T & T & T & T \\
+        \end{array}
+        \]
+        \item Sometimes done with multiplication.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Guard Expressions}
+    \begin{itemize}
+        \item Guard expressions are where use short circuits to guard the execution of an expression.
+        \item Sometimes these are language features, but mostly these are just a consequence of short-circuit evaluation.
+    \end{itemize}
+    \begin{code}
+    
+    if i < len(ar) and ar[i] != 0:
+      print("Not zero")
+    \end{code}
+\end{frame}
+
+\begin{frame}{Reading Assignment}
+    \begin{itemize}
+        \item Read Chapter 7 -- Expressions and Assignment Statements 
+    \end{itemize}
+\end{frame}
+
+\end{document}

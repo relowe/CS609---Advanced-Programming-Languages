@@ -1,5 +1,5 @@
 % Uncomment for handout
-%\def\HANDOUT{}
+\def\HANDOUT{}
 
 
 \ifdefined\HANDOUT
@@ -67,7 +67,7 @@
  \end{adjustbox}
 }
 
-\title{Regular Grammars}
+\title{Regular Grammars and Lexers}
 
 
 \author{Robert Lowe}
@@ -400,13 +400,16 @@ L=\{ac^nb:n \geq 1\}
         (r1) edge [bend left] node {$*$} (L)
         (r2) edge [bend right] node {$*$} (L)
         (R) edge [bend right] node {$*$} (L)
+        (L) edge [loop above] node {$*$} ()
     \end{tikzpicture}
     \end{adjustbox}
+    
+    {\tiny NOTE: Here, `*' denotes any letter.}
     \end{center}
 \end{frame}
 
 
-\section {Lexical Analysis and Parsing}
+\section {Lexical Analysis}
 \begin{frame}{Processing a Programming Language}
 \smartdiagramset{back arrow disabled=true}
 \smartdiagram[flow diagram:horizontal]{Source, Lexer, Parser, Processor}
@@ -420,6 +423,20 @@ L=\{ac^nb:n \geq 1\}
 \end{enumerate}
 \end{frame}
 
+\begin{frame}{Lexical Analysis}
+\begin{center}
+\smartdiagramset{back arrow disabled=true}
+\smartdiagram[sequence diagram:horizontal]{Character Stream, [LEXER] , Token Stream}
+\end{center}
+
+\begin{itemize}
+    \item A LEXical analyzER or {\bf LEXER} is a subsystem which translates a character stream into a token stream according to the regular portions of the grammar.
+    \item A {\bf token} is a numeric representation of a category of terminal strings.
+    \item A {\bf lexeme} is the actual terminal string presented to the lexer.
+    \item A lexer's job is to reduce the language alphabet to tokens, which makes parsing much easier.
+\end{itemize}
+\end{frame}
+
 \begin{frame}{Dividing the Grammar}
     \begin{enumerate}
         \item Extract all the terminal strings and give them token labels.
@@ -428,6 +445,158 @@ L=\{ac^nb:n \geq 1\}
         \item Replace all regular rules with token labels.
         \item Repeat steps 3 and 4 taking care that the lexer grammar is still regular.
     \end{enumerate}
+\end{frame}
+
+\begin{frame}{Introducing the Calc Language}
+    \begin{itemize}
+        \item Calc is a small programming language I designed for this class.
+        \item The initial version of the language implements a basic calculator.
+        \item Over time, we will slowly add features to the language.
+        \item Some of the features will be added by you!
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[t,fragile]{Calc Phase 1 -- Expression Calculator}
+\begin{columns}
+\column{0.5\textwidth}    
+    \begin{code}
+Context Free (Parser) Grammar
+=============================
+< Program >     ::= < Program > < Statement > 
+                    | < Statement >
+
+< Statement >   ::= < Expression > "\n"
+
+< Expression >  ::= < Expression > "+" < Term  >
+                    | < Expression > "-" < Term >
+                    | < Term >
+
+< Term >        ::= < Term  > "*"  < Factor >
+                    | < Term > "/" < Factor >
+                    | < Factor >
+
+< Factor >      ::= < Base > "^" < Factor >
+                    | < Base >
+
+< Base >        ::= "(" < Expression > ")"
+                    | "-" < Expression > 
+                    | < Number >
+
+< Number >      ::= < Integer-Lit > 
+                    | < Real-Lit >
+
+< Integer-Lit > ::= < Integer-Lit > < Digit >
+                    | < Digit >
+
+< Real-Lit >    ::= < Integer-Lit > "." < Integer-Lit >
+
+< Digit >       ::= "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"
+    \end{code}
+\column{0.5\textwidth}    
+\end{columns}
+\end{frame}
+
+\begin{frame}[t,fragile]{Extract and Replace Terminal Strings}
+\begin{columns}[T]
+\column{0.5\textwidth}    
+    \begin{code}
+Context Free (Parser) Grammar
+=============================
+< Program >     ::= < Program > < Statement > 
+                    | < Statement >
+
+< Statement >   ::= < Expression > NEWLINE 
+
+< Expression >  ::= < Expression > PLUS < Term  >
+                    | < Expression > MINUS < Term >
+                    | < Term >
+
+< Term >        ::= < Term  > TIMES  < Factor >
+                    | < Term > DIVIDE < Factor >
+                    | < Factor >
+
+< Factor >      ::= < Base > POW < Factor >
+                    | < Base >
+
+< Base >        ::= LPAREN < Expression > RPAREN
+                    | MINUS < Expression > 
+                    | < Number >
+
+< Number >      ::= < Integer-Lit > 
+                    | < Real-Lit >
+
+< Integer-Lit > ::= < Integer-Lit > < Digit >
+                    | < Digit >
+
+< Real-Lit >    ::= < Integer-Lit > "." < Integer-Lit >
+
+< Digit >       ::= "0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9"
+    \end{code}
+\column{0.5\textwidth}    
+\begin{code}
+Regular (Lexer) Grammar
+=======================
+Token       Rule
+-----       ----
+NEWLINE     \n
+PLUS        +
+MINUS       -
+TIMES       *
+DIVIDE      /
+POW         ^
+LPAREN      (
+RPAREN      )
+\end{code}
+\end{columns}
+\end{frame}
+
+\begin{frame}[t,fragile]{Extract and Replace Regular Rules}
+\begin{columns}[T]
+\column{0.5\textwidth}    
+    \begin{code}
+Context Free (Parser) Grammar
+=============================
+< Program >     ::= < Program > < Statement > 
+                    | < Statement >
+
+< Statement >   ::= < Expression > NEWLINE 
+
+< Expression >  ::= < Expression > PLUS < Term  >
+                    | < Expression > MINUS < Term >
+                    | < Term >
+
+< Term >        ::= < Term  > TIMES  < Factor >
+                    | < Term > DIVIDE < Factor >
+                    | < Factor >
+
+< Factor >      ::= < Base > POW < Factor >
+                    | < Base >
+
+< Base >        ::= LPAREN < Expression > RPAREN
+                    | MINUS < Expression > 
+                    | < Number >
+
+< Number >      ::= INTLIT
+                    | REALLIT
+    \end{code}
+\column{0.5\textwidth}    
+\begin{code}
+Regular (Lexer) Grammar
+=======================
+Token       Rule
+-----       ----
+NEWLINE     \n
+PLUS        +
+MINUS       -
+TIMES       *
+DIVIDE      /
+POW         ^
+LPAREN      (
+RPAREN      )
+INTLIT      [0-9]+
+REALLIT     INTLIT.INTLIT
+\end{code}
+\end{columns}
 \end{frame}
 
 \begin{frame}{Reading Assignment}

@@ -1,0 +1,384 @@
+% Uncomment for handout
+\def\HANDOUT{}
+
+
+\ifdefined\HANDOUT
+\documentclass[handout]{beamer}
+\usepackage{pgfpages}
+\pgfpagesuselayout{4 on 1}[letterpaper,landscape,border shrink=5mm]
+\else
+\documentclass{beamer}
+\fi
+
+\mode<presentation>
+{
+  \usetheme{Warsaw}
+  \definecolor{sered}{rgb}{0.78, 0.06, 0.18}
+  \definecolor{richblack}{rgb}{0.0, 0.0, 0.0}
+  \setbeamercolor{structure}{fg=sered,bg=richblack}
+  %\setbeamercovered{transparent}
+}
+
+
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{fancyvrb}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{esvect}
+
+\makeatletter
+\newcommand{\imagesource}[1]{{\centering\hfill\break\hbox{\scriptsize Image Source:\thinspace{\tiny\itshape #1}}\par}}
+\newcommand{\image}[3][\@nil]{%
+        \def\tmp{#1}%
+        \begin{center}
+        \ifx\tmp\@nnil
+            \includegraphics[max height = 0.55\textheight, max width = \textwidth]{images/#2}
+        \else
+            \includegraphics[max height = 0.50\textheight, max width = \textwidth]{images/#2}
+            \linebreak
+            #1
+        \fi
+        \linebreak
+        {\tiny Image Source:\thinspace{\tiny #3}}
+        \end{center}
+}
+
+\newenvironment{code}{%
+ \VerbatimEnvironment
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ \begin{BVerbatim}
+  }{
+  \end{BVerbatim}
+ \end{adjustbox}
+}
+
+
+\newenvironment{scaled}{%
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ }{
+ \end{adjustbox}
+}
+
+\title{OOP and Reflection}
+
+
+\author{Robert Lowe}
+
+\institute[Southeast Missouri State University] % (optional, but mostly needed)
+{
+  Department of Computer Science\\
+  Southeast Missouri State University
+}
+
+\date[]{}
+\subject{}
+
+\pgfdeclareimage[height=1.0cm]{university-logo}{images/semo-logo}
+\logo{\pgfuseimage{university-logo}}
+
+
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+
+% Structuring a talk is a difficult task and the following structure
+% may not be suitable. Here are some rules that apply for this
+% solution: 
+
+% - Exactly two or three sections (other than the summary).
+% - At *most* three subsections per section.
+% - Talk about 30s to 2min per frame. So there should be between about
+%   15 and 30 frames, all told.
+
+% - A conference audience is likely to know very little of what you
+%   are going to talk about. So *simplify*!
+% - In a 20min talk, getting the main ideas across is hard
+%   enough. Leave out details, even if it means being less precise than
+%   you think necessary.
+% - If you omit details that are vital to the proof/implementation,
+%   just say so once. Everybody will be happy with that.
+
+
+\begin{frame}{Definitions}
+\begin{block}{Reflection}
+{\bf Reflection} is when a program can see and/or manipulate its own metadata.
+\end{block}
+    \begin{description}
+        \item<2->[Introspection] -- The act of inspecting metadata.
+        \item<3->[Intercession] -- The act of reacting to metadata.
+    \end{description}
+\end{frame}
+
+\begin{frame}[fragile]{An Example in Java}
+\begin{code}
+public class Duck
+{
+    public void sound() {
+        System.out.println("Quack!");
+    }
+}
+
+public class Cow {
+    public void sound() {
+        System.out.println("Mooo!");
+    }
+}
+
+public class Car {
+    public void sound() {
+        System.out.println("Honk Honk!");
+    }
+}
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{An Example in Java}
+\begin{code}
+    public static void listen(Object o) {
+        try {
+            Class cls = o.getClass();
+            Method m = cls.getMethod("sound");
+            m.invoke(o);
+        } catch(Exception e) {
+            System.out.println("Could not invoke sound.");
+        }
+    }
+    
+    public static void listObject(Object o) {
+        Class cls = o.getClass();
+
+        System.out.printf("Class Name: %s\n", cls.getCanonicalName());
+        System.out.println("Fields");
+        for(Field f : cls.getFields()) {
+            System.out.println(f.getName());
+        }
+        System.out.println("Methods");
+        for(Method m : cls.getMethods()) {
+            System.out.println(m.getName());
+        }
+    }
+\end{code} 
+\end{frame}
+
+\begin{frame}[fragile]{An Example in Java}
+\begin{code}
+    public static void main(String [] args) {
+        Duck duck = new Duck();
+        Cow cow   = new Cow();
+        Car car   = new Car();
+
+        listen(duck);
+        listen(cow);
+        listen(car);
+        listen(args);
+
+        listObject(duck);
+        listObject(args);
+    }
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{An Example in Java}
+\begin{code}
+Quack!
+Mooo!
+Honk Honk!
+Could not invoke sound.
+Class Name: Duck
+Fields
+Methods
+sound
+wait
+wait
+wait
+equals
+toString
+hashCode
+getClass
+notify
+notifyAll
+Class Name: java.lang.String[]
+Fields
+Methods
+wait
+wait
+wait
+equals
+toString
+hashCode
+getClass
+notify
+notifyAll
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{An Example in Python}
+\begin{code}
+class Duck:
+    def sound(self):
+        print("Quack!")
+
+
+class Cow:
+    def sound(self):
+        print("Mooo!")
+
+
+class Car:
+    def sound(self):
+        print("Honk honk!")
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{An Example in Python}
+\begin{code}
+def listen(o):
+    sound = getattr(o, 'sound', None)
+    if callable(sound):
+        sound()
+    else:
+        print("Could not invoke sound function")
+
+def list_object(o):
+    print("Class Name: ", type(o))
+    print(dir(o))
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{An Example in Python}
+\begin{code}
+def main():
+    duck = Duck()
+    cow = Cow()
+    car = Car()
+
+    listen(duck)
+    listen(cow)
+    listen(car)
+    listen([])
+
+    list_object(duck)
+    list_object([])
+
+if __name__=='__main__':
+    main()
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{An Example in Python}
+\begin{code}
+Quack!
+Mooo!
+Honk honk!
+Could not invoke sound function
+Class Name:  <class '__main__.Duck'>
+['__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', 
+ '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__init_subclass__', 
+ '__le__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', 
+ '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', 
+ 'sound']
+Class Name:  <class 'list'>
+['__add__', '__class__', '__class_getitem__', '__contains__', '__delattr__', '__delitem__', 
+ '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', 
+ '__gt__', '__hash__', '__iadd__', '__imul__', '__init__', '__init_subclass__', '__iter__', 
+ '__le__', '__len__', '__lt__', '__mul__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', 
+ '__repr__', '__reversed__', '__rmul__', '__setattr__', '__setitem__', '__sizeof__', '__str__', 
+ '__subclasshook__', 'append', 'clear', 'copy', 'count', 'extend', 'index', 'insert', 'pop', 
+ 'remove', 'reverse', 'sort']
+
+\end{code}
+\end{frame}
+
+\begin{frame}{Pros and Cons of Reflection}
+    \begin{itemize}
+        \item<2-> Reflection violates polymorphism!
+        \item<3-> Reflection evades compile-time type checking.
+        \item<4-> The primary legitimate use of reflection is in testing and code evaluation.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{A More Correct Java Program}
+\begin{code}
+public interface Soundable {
+    public void sound();
+}
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{A More Correct Java Program}
+\begin{code}
+public class Duck implements Soundable
+{
+    public void sound() {
+        System.out.println("Quack!");
+    }
+}
+
+public class Cow implements Soundable {
+    public void sound() {
+        System.out.println("Mooo!");
+    }
+}
+
+public class Car implements Soundable  {
+    public void sound() {
+        System.out.println("Honk Honk!");
+    }
+}
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{A More Correct Java Program}
+\begin{code}
+    public static void listen(Soundable o) {
+        o.sound();
+    }
+
+    public static void main(String [] args) {
+        Duck duck = new Duck();
+        Cow cow   = new Cow();
+        Car car   = new Car();
+
+        listen(duck);
+        listen(cow);
+        listen(car);
+        // Can't do this one thanks to compile-time checking ---> listen(args);
+
+    }
+
+\end{code}
+\end{frame}
+
+\begin{frame}{Reflection in C++}
+\begin{itemize}
+    \item<2-> Compile-Time Introspection is Possible through templates.
+    \item<3-> Run-Time Introspection is Impossible.
+    \item<4-> There are a variety of macros and techniques which can be used to invade object methods and memory in C++.
+    \item<5-> Such methods are implementation dependent, and a very bad idea. 
+    \item<6-> So you'll have to Google them yourself! (But please don't use them.)
+\end{itemize}
+\end{frame}
+
+\end{document}

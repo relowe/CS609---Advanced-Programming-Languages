@@ -1,6 +1,9 @@
 % Uncomment for handout
-%\def\HANDOUT{}
+\def\HANDOUT{}
 
+% language selection
+%\def\PYTHON{}
+\def\CPP{}
 
 \ifdefined\HANDOUT
 \documentclass[]{beamer}
@@ -234,6 +237,9 @@ General algorithm framework:
 \begin{frame}[fragile]{Recursive Random Generation}
 \begin{columns}
 \column{0.5\textwidth}
+
+
+\ifdefined\PYTHON
 \begin{block}{Python Excerpt}
 \begin{code}
 def e():
@@ -250,6 +256,31 @@ def e():
         return n()
 \end{code}
 \end{block}
+\fi
+
+\ifdefined\CPP
+\begin{block}{C++ Excerpt}
+\begin{code}
+std::string e()
+{
+    int rule = select_rule(2,6);
+
+    if(rule == 2) {
+        return e() + "+" + e();
+    } else if(rule == 3) {
+        return e() + "-" + e();
+    } else if(rule == 4) {
+        return e() + "*" + e();
+    } else if(rule == 5) {
+        return e() + "/" + e();
+    }
+
+    //rule 6
+    return n();
+}
+\end{code}
+\end{block}
+\fi
 
 \column{0.5\textwidth}
     \begin{itemize}
@@ -264,7 +295,7 @@ def e():
 \section{Types of Languages}
 \begin{frame}{Classifications of Languages and Recognizers}
     \begin{block}{Language Recognition}
-        A compiler and/or interpreter is a program that essential recognizes a 
+        A compiler and/or interpreter is a program that essentially recognizes a 
         string and then processes it.
     \end{block}
     \begin{itemize}
@@ -291,7 +322,7 @@ def e():
     \]
     \item Type-3 {\bf Regular}
     \[
-    A \rightarrow \alpha \textrm{ and }
+    A \rightarrow a \textrm{ and }
     A \rightarrow aB
     \]
 \end{itemize}

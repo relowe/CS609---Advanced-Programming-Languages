@@ -1,5 +1,7 @@
 % Uncomment for handout
 \def\HANDOUT{}
+%\def\PYTHON{}
+\def\CPP{}
 
 
 \ifdefined\HANDOUT
@@ -124,7 +126,7 @@
     \begin{itemize}
         \item Parsing is working the generating problem backwards.
         \item Given a sentence in a language, produce a parse tree for that sentence.
-        \item If no parse tree can be found, we reject the 
+        \item If no parse tree can be found, we reject the sentence.
     \end{itemize}
 \end{frame}
 
@@ -303,7 +305,7 @@ Expression: \texttt{3*(2-5)}
                     }    
                     child { node {\textttt{*}}}    
                     child { node {$F$}
-                        child { node {\texttt{LPAREN}}}
+                        child { node {\texttt{(}}}
                         child { node {$E$} 
                             child {node { $E$ }
                                 child {node {$T$}
@@ -319,7 +321,7 @@ Expression: \texttt{3*(2-5)}
                                 }
                             }
                         }
-                        child { node {\texttt{RPAREN}}}
+                        child { node {\texttt{)}}}
                     }
                 }
         \end{tikzpicture}
@@ -575,6 +577,7 @@ A context free grammar, $G$ is an LL(1) grammar if and only if
 \end{columns}
 \end{frame}
 
+\ifdefined\PYTHON
 \begin{frame}[fragile]{LL(1) Recursive Descent Parsing}
 \begin{code}
 def E(self):
@@ -593,13 +596,37 @@ def E_prime(self):
     # epsilon requires no code, we just don't recurse.
 \end{code}
 \end{frame}
+\fi
+
+\ifdefined\CPP
+\begin{frame}[fragile]{LL(1) Recursive Descent Parsing}
+\begin{code}
+void Parser::parse_E() {
+    parse_T();
+    parse_E_prime();
+}
+
+
+void Parser::parse_E_prime() {
+    if(lexer.current() == PLUS) {
+        lexer.next();
+        parse_T();
+        parse_T_prime();
+    } else if(lexer.current() == MINUS) {
+        lexer.next();
+        parse_T();
+        parse_T_prime();
+    }
+}
+\end{code}
+\end{frame}
+\fi
 
 \begin{frame}{Suggested Exercises}
     \begin{enumerate}
-        \item Eliminate left recursion from toyc.
-        \item Verify that the non-left recursive toyc is LL(1).
-        \item Eliminate left recursion from funlang.
-        \item Verify that the non-left recursive funlang is LL(1).
+        \item Eliminate left recursion from calc.
+        \item Verify that the non-left recursive calc is LL(1).
+        \item Sketch out the functions that will be needed to parse calc.
     \end{enumerate} 
 \end{frame}
 

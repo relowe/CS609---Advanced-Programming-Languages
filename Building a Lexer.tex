@@ -1,6 +1,5 @@
 % Uncomment for handout
-\def\HANDOUT{}
-
+%\def\HANDOUT{}
 
 \ifdefined\HANDOUT
 \documentclass[handout]{beamer}
@@ -114,63 +113,530 @@
 %   you think necessary.
 % - If you omit details that are vital to the proof/implementation,
 %   just say so once. Everybody will be happy with that.
+
+\begin{frame}{Building Options}
+   \begin{itemize}
+       \item Use a lexer generator such as {\bf lex} or {\bf flex}.
+       \item Write a custom lexer from scratch.
+   \end{itemize} 
+\end{frame}
+
+
 \begin{frame}{Phase 1 --- Lexer Framework}
     \begin{enumerate}
-        \item Construct the Tokens class with 2 tokens, \texttt{INVALID} and \texttt{EOF}
-        \item Construct the \texttt{Lexeme} named tuple.
-        \item Create the \texttt{Lexer} class with the following methods:
+        \item Start the Token enumeration with 2 tokens, \texttt{INVALID} and \texttt{EOF}
+        \item Construct the \texttt{LexerToken} class to store detailed token information.
+        \item Create the public interface of the \texttt{Lexer} class with the following methods:
+        \begin{itemize}
+            \item \texttt{next}
+            \item \texttt{current}
+        \end{itemize}
+        \item Create the backend interface of the lexer.
         \begin{itemize}
             \item \texttt{read}
             \item \texttt{consume}
-            \item \texttt{skip\_space}
+            \item \texttt{skip}
         \end{itemize}
-        \item Construct empty versions of the \texttt{group1}, \texttt{group2}, \texttt{group3} methods which return \texttt{False}
-        \item Construct the \texttt{next} method.
         \item Construct the unit test for the lexer, and verify that it produces a stream of \texttt{INVALID} tokens terminating with an \texttt{EOF} token.
     \end{enumerate}
 \end{frame}
 
-\begin{frame}{Phase 2 --- Tokens and Group 1}
+\begin{frame}[fragile]{Phase 1 --- The Token Representation}
+\begin{code}
+//Token enumeration
+enum Token
+{
+    INVALID=0,
+    TEOF,
+};
+
+// Store a detailed account of a token, including the token 
+// along with its lexeme, line, and column
+struct LexerToken 
+{
+    Token token;
+    std::string lexeme;
+    int line;
+    int col;
+
+    virtual bool operator==(const Token &rhs) const;
+    virtual bool operator==(const LexerToken &rhs) const;
+    virtual bool operator!=(const Token &rhs) const;
+    virtual bool operator!=(const LexerToken &rhs) const;
+};
+
+// print the lexter token (mainly for debugging)
+std::ostream& operator<<(std::ostream &os, const LexerToken &t);
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Phase 1 --- Public Interface of the Lexer}
+\begin{code}
+class Lexer
+{
+public:
+    // Construct a lexer using std::cin
+    Lexer();
+
+    // Construct a lexer for the given stream
+    Lexer(std::istream &is);
+
+    // advance the lexer to the next token
+    virtual LexerToken next();
+
+    // get the current token
+    virtual LexerToken current() const;
+
+protected:
+    ...
+private:
+    ...
+}
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Phase 1 --- \texttt{next} Method}
+\begin{code}
+// advance the lexer to the next token
+LexerToken Lexer::next()
+{
+    // get to a significant charcater
+    skip();
+
+    // mark the beginning of the current token (assume it is invalid)
+    _curtok.token = INVALID;
+    _curtok.lexeme = "";
+    _curtok.line = _line;
+    _curtok.col = _col;
+
+    // Try each class of token
+    if(not _is) {
+        _curtok.token = TEOF;
+        return current();
+    } else {
+        // nothing matched, consume and move on
+        consume();
+        return current();
+    }
+}
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Phase 1 --- \texttt{current} Method}
+\begin{code}
+// get the current token
+LexerToken Lexer::current() const
+{
+    return _curtok;
+}
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Phase 1 --- Lexer Backend}
+\begin{code}
+class Lexer
+{
+public:
+    ...
+protected:
+    // read the next character from the stream
+    virtual void read();
+    
+    // consume the current character and add it to the lexeme
+    virtual void consume();
+
+    // consume all the characters that match the comparison pattern
+    virtual void consume(std::function<bool(char)>match);
+
+    // skip irrelevant spaces and symbols
+    virtual void skip();
+
+private:
+    std::istream &_is;      // The stream we are lexing
+    LexerToken _curtok;     // The current token
+    char _cur;              // The current character
+    int _line;              // The current line we are lexing
+    int _col;               // The current column we are lexing
+    bool _sigline;          // True if significant characters have been found
+};
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Phase 1 --- \texttt{read} Method}
+\begin{code}
+// read the next character from the stream
+void Lexer::read()
+{
+    // get the character from the current stream
+    _cur = _is.get();
+
+    // update line and column information 
+    if(_cur == '\n') {
+        _line++;
+        _col=0;
+        _sigline = false;
+    } else {
+        _col++;
+    }
+}
+\end{code} 
+\end{frame}
+
+
+\begin{frame}[fragile]{Phase 1 --- \texttt{skip} Method}
+\begin{code}
+// skip irrelevant spaces and symbols
+void Lexer::skip()
+{
+    // read until the next significant character is found
+    while((_is and _cur == '\0') or
+          (not _sigline and _cur =='\n') or
+          isspace(_cur)) 
+    {
+        read();
+    }
+
+    // once we are here, we have a significant character
+    _sigline = true;
+}
+\end{code} 
+\end{frame}
+
+
+\begin{frame}[fragile]{Phase 1 --- \texttt{consume} Methods}
+\begin{code}
+// consume the current character and add it to the lexeme
+void Lexer::consume()
+{
+    // add the current character to the lexeme and get the next one
+    _curtok.lexeme += _cur;
+    read();
+}
+
+// consume all the characters that match the comparison pattern
+void Lexer::consume(std::function<bool(char)> match)
+{
+    while(match(_cur)) {
+        consume();
+    }
+}
+\end{code} 
+\end{frame}
+
+
+\begin{frame}[fragile]{Phase 1 --- The Test Interface}
+\begin{code}
+ int main(int argc, char **argv) {
+    // check the command line
+    if(argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <filename>" << std::endl;
+        return -1;
+    }
+
+    // attempt to open the file
+    std::ifstream file;
+    file.open(argv[1]);
+    if(not file) {
+        std::cerr << "Error: Could not open " << argv[1] << std::endl;
+        return -1;
+    }
+
+    // build the lexer and let it do its stuff.
+    Lexer lexer(file);
+    while(lexer.current() != TEOF) {
+        std::cout << lexer.next() << std::endl;
+    }
+
+    file.close();
+
+    return 0;
+}      
+\end{code} 
+\end{frame}
+
+
+\begin{frame}{Phase 2 --- Tokens and States}
     \begin{enumerate}
         \item Define all the tokens.
-        \item Implement the \texttt{group1} function fully.
-        \begin{itemize}
-            \item The lexer functions should update \texttt{cur\_tok} on a match.
-            \item The lexer functions return \texttt{True} on match, \texttt{False} otherwise.
-            \item Lexer functions should call \texttt{consume} to consume all characters in their matched lexeme.
-            \item List the tokens as tuples of the form \texttt{(lex, Token)}
-        \end{itemize}
-        \item Test that the lexer identifies the group 1 tokens.
+        \item Group tokens into logical groups.
+        \item Plan how you will represent state and transitions.
+        \item Implement the recognition of the tokens
     \end{enumerate}
 \end{frame}
 
-\begin{frame}[fragile]{Phase 3 --- Group 2 Tokens}
-    \begin{block}{Maintaining Possible Tokens}
-    \begin{code}
-remain = lambda s : [ tok for tok in tokens if tok[0].startswith(s) ]
-tokens = remain(s) 
-    \end{code}
-    \end{block}
-    \begin{enumerate}
-        \item Create the token list.
-        \item Use the above lambda to filter possible tokens.
-        \item Return the matching token and/or invalid.
-        \item Verify that the group 2 tokens are matched.
-    \end{enumerate}
+\begin{frame}[t,fragile]{Phase 2 --- Define All Tokens}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\begin{code}
+//Token enumeration
+enum Token
+{
+    INVALID=0,
+    TEOF,
+    NEWLINE,
+    PLUS,
+    MINUS,
+    TIMES,
+    DIVIDE,
+    POW,
+    LPAREN,
+    RPAREN,
+    INTLIT,
+    REALLIT
+};
+\end{code}
+
+\column{0.5\textwidth}
+\begin{code}
+Lexer Grammar
+=============
+NEWLINE     \n
+PLUS        +
+MINUS       -
+TIMES       *
+DIVIDE      /
+POW         ^
+LPAREN      (
+RPAREN      )
+INTLIT      [0-9]+
+REALLIT     INTLINT.INTLIT
+\end{code}
+\end{columns}
 \end{frame}
 
-\begin{frame}{Phase 4 --- Group 3 Tokens}
-    \begin{enumerate}
-        \item Subdivide the group 3 tokens into what they start with. Usually separating into letter and number groups.
-        \item Create functions for each subdivision.
-        \begin{itemize}
-            \item These functions will always return \texttt{True}
-            \item If they fail to match, they should set the \texttt{cur\_tok} field to invalid.
-        \end{itemize}
-        \item Call the appropriate function based on the contents of \texttt{cur\_char} when \texttt{group3} is called.
-        \item Verify that all tokens get matched.
-        \item Insert an invalid symbol and verify that invalid tokens are still matched.
-    \end{enumerate}
+\begin{frame}{Phase 2 --- Group Tokens into Logical Groups}
+   \begin{enumerate}
+       \item Single Character Tokens: 
+       \begin{itemize}
+           \item \texttt{NEWLINE}
+           \item \texttt{PLUS}
+           \item \texttt{MINUS}
+           \item \texttt{TIMES}
+           \item \texttt{DIVIDE}
+           \item \texttt{POW}
+           \item \texttt{LPAREN} 
+           \item \texttt{RPAREN}
+       \end{itemize}
+       \item Numbers: 
+       \begin{itemize}
+           \item \texttt{INTLIT}
+           \item \texttt{REALLIT}
+       \end{itemize}
+   \end{enumerate} 
 \end{frame}
 
+
+\begin{frame}[fragile]{Phase 2 --- State Transitions}
+\begin{code}
+class Lexer
+{
+public:
+    ...
+protected:
+    ...
+    // attempt to lex the single character tokens
+    virtual bool lex_single();
+
+    // attempt to lex a number
+    virtual bool lex_number();
+    
+private:
+    ...
+};    
+\end{code} 
+\end{frame}
+
+\begin{frame}[fragile]{Phase 2 --- \texttt{lex\_single} Method}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\begin{code}
+// attempt to lex the single character tokens
+bool Lexer::lex_single()
+{
+    // assume we have an invalid token
+    _curtok.token = INVALID;
+
+    // match our character
+    switch(_cur) 
+    {
+        case '\n':
+            _curtok.token = NEWLINE;
+            break;
+
+        case '+':
+            _curtok.token = PLUS;
+            break;
+            
+        case '-':
+            _curtok.token = MINUS;
+            break;
+
+        case '*':
+            _curtok.token = TIMES;
+            break;
+\end{code}
+\column{0.5\textwidth}
+\begin{code}
+        case '/':
+            _curtok.token = DIVIDE;
+            break;
+
+        case '^':
+            _curtok.token = POW;
+            break;
+
+        case '(':
+            _curtok.token = LPAREN;
+            break;
+
+        case ')':
+            _curtok.token = RPAREN;
+            break;
+
+        default:
+            return false;
+    }
+
+    if(_curtok == INVALID) {
+        // no match was made
+        return false;
+    } else {
+        // consume the match and move on
+        consume();
+        return true;
+    }
+}
+\end{code} 
+\end{columns}
+\end{frame}
+
+
+\begin{frame}[fragile]{Phase 2 --- \texttt{lex\_number} Method}
+\begin{code}
+// attempt to lex a number
+bool Lexer::lex_number()
+{
+    //numbers must begin with a digit
+    if(not isdigit(_cur)) {
+        return false;
+    }
+
+    //we have entered the INTLIT state
+    _curtok.token = INTLIT;
+
+    // consume the digits
+    consume(isdigit);
+
+    //if there is no dot, we are done
+    if(_cur != '.') {
+        return true;
+    }
+
+    //ok, so we have a dot! consume it and transition to invalid
+    consume();
+    _curtok.token = INVALID;
+
+    //Now, if the next symbol is not a number, we have successfully
+    //matched an invalid token. 
+    if(not isdigit(_cur)) {
+        return true;
+    }
+
+    // it's a real literal! consume the rest and return true
+    _curtok.token = REALLIT;
+    consume(isdigit);
+    return true;
+}
+\end{code} 
+\end{frame}
+
+
+\begin{frame}[fragile]{Phase 2 --- \texttt{next} Method}
+\begin{code}
+// advance the lexer to the next token
+LexerToken Lexer::next()
+{
+    // get to a significant charcater
+    skip();
+
+    // mark the beginning of the current token (assume it is invalid)
+    _curtok.token = INVALID;
+    _curtok.lexeme = "";
+    _curtok.line = _line;
+    _curtok.col = _col;
+
+    // Try each class of token
+    if(not _is) {
+        _curtok.token = TEOF;
+        return current();
+    } else if(lex_single()) {
+        return current();
+    } else if(lex_number()) {
+        return current();
+    } else {
+        // nothing matched, consume and move on
+        consume();
+        return current();
+    }
+}
+\end{code} 
+\end{frame}
+
+
+\begin{frame}[fragile]{Sample Run --- Input}
+\begin{code}
+2+      2
+2
+
+
+
+
+
+123.555 ^ (4*2)/6
+.5
+0.
+hello
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Sample Run --- Output}
+\begin{code}
+~/.../04 - Lexical Analyses/calc-lexer $ make
+g++ -c -g lexer_test.cpp
+g++ -c -g lexer.cpp
+g++ -o lexer_test lexer_test.o lexer.o -g
+~/.../04 - Lexical Analyses/calc-lexer $ ./lexer_test lexer_test.cal
+INTLIT: "2" Line: 1 Column: 1
+PLUS: "+" Line: 1 Column: 2
+INTLIT: "2" Line: 1 Column: 9
+INTLIT: "2" Line: 2 Column: 1
+REALLIT: "123.555" Line: 8 Column: 1
+POW: "^" Line: 8 Column: 9
+LPAREN: "(" Line: 8 Column: 11
+INTLIT: "4" Line: 8 Column: 12
+TIMES: "*" Line: 8 Column: 13
+INTLIT: "2" Line: 8 Column: 14
+RPAREN: ")" Line: 8 Column: 15
+DIVIDE: "/" Line: 8 Column: 16
+INTLIT: "6" Line: 8 Column: 17
+INVALID: "." Line: 9 Column: 1
+INTLIT: "5" Line: 9 Column: 2
+INVALID: "0." Line: 10 Column: 1
+INVALID: "h" Line: 11 Column: 1
+INVALID: "e" Line: 11 Column: 2
+INVALID: "l" Line: 11 Column: 3
+INVALID: "l" Line: 11 Column: 4
+INVALID: "o" Line: 11 Column: 5
+EOF: "" Line: 12 Column: 1
+\end{code}
+\end{frame}
+
+\begin{frame}{Remaining Work}
+\begin{enumerate}
+    \item Bug Alert! \texttt{NEWLINE} tokens are never generated!
+    \item It would be nice to add comments. A comment will begin with a \texttt{#} and will continue to the end of the line. (Note that the \texttt{NEWLINE} that terminates a comment should not be a token.
+\end{enumerate}
+\end{frame}
 \end{document}

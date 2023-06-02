@@ -1,0 +1,375 @@
+% Uncomment for handout
+\def\HANDOUT{}
+
+
+\ifdefined\HANDOUT
+\documentclass[handout]{beamer}
+\usepackage{pgfpages}
+\pgfpagesuselayout{4 on 1}[letterpaper,landscape,border shrink=5mm]
+\else
+\documentclass{beamer}
+\fi
+
+\mode<presentation>
+{
+  \usetheme{Warsaw}
+  \definecolor{sered}{rgb}{0.78, 0.06, 0.18}
+  \definecolor{richblack}{rgb}{0.0, 0.0, 0.0}
+  \setbeamercolor{structure}{fg=sered,bg=richblack}
+  %\setbeamercovered{transparent}
+}
+
+
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{fancyvrb}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{esvect}
+
+\makeatletter
+\newcommand{\imagesource}[1]{{\centering\hfill\break\hbox{\scriptsize Image Source:\thinspace{\tiny\itshape #1}}\par}}
+\newcommand{\image}[3][\@nil]{%
+        \def\tmp{#1}%
+        \begin{center}
+        \ifx\tmp\@nnil
+            \includegraphics[max height = 0.55\textheight, max width = \textwidth]{images/#2}
+        \else
+            \includegraphics[max height = 0.50\textheight, max width = \textwidth]{images/#2}
+            \linebreak
+            #1
+        \fi
+        \linebreak
+        {\tiny Image Source:\thinspace{\tiny #3}}
+        \end{center}
+}
+
+\newenvironment{code}{%
+ \VerbatimEnvironment
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ \begin{BVerbatim}
+  }{
+  \end{BVerbatim}
+ \end{adjustbox}
+}
+
+
+\newenvironment{scaled}{%
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ }{
+ \end{adjustbox}
+}
+
+\title{Building Parse Trees}
+
+
+\author{Robert Lowe}
+
+\institute[Southeast Missouri State University] % (optional, but mostly needed)
+{
+  Department of Computer Science\\
+  Southeast Missouri State University
+}
+
+\date[]{}
+\subject{}
+
+\pgfdeclareimage[height=1.0cm]{university-logo}{images/semo-logo}
+\logo{\pgfuseimage{university-logo}}
+
+
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+
+% Structuring a talk is a difficult task and the following structure
+% may not be suitable. Here are some rules that apply for this
+% solution: 
+
+% - Exactly two or three sections (other than the summary).
+% - At *most* three subsections per section.
+% - Talk about 30s to 2min per frame. So there should be between about
+%   15 and 30 frames, all told.
+
+% - A conference audience is likely to know very little of what you
+%   are going to talk about. So *simplify*!
+% - In a 20min talk, getting the main ideas across is hard
+%   enough. Leave out details, even if it means being less precise than
+%   you think necessary.
+% - If you omit details that are vital to the proof/implementation,
+%   just say so once. Everybody will be happy with that.
+
+\section{Planning for Parse Trees}
+\begin{frame}{Parse Tree Basics}
+    \begin{itemize}
+        \item Each node in a parse tree represents one of two things:
+        \begin{item}
+            \item An operation.
+            \item A value.
+        \end{item}
+        \item Nodes in a parse tree can have a variable number of children.
+        \item Interior nodes represent operators.
+        \item Leaves are values.
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}{Identifying Parse Trees in Non-Terminals}
+    \begin{itemize}
+        \item Each rule which results in an operation should form a parse tree.
+        \item Not all non-terminals will have a corresponding parse tree node.
+        \item It helps to sketch out the results of each rule's parse tree.
+    \end{itemize} 
+\end{frame}
+
+
+\begin{frame}[fragile]{Calc Parser Grammar}
+\begin{code}
+< Program >     ::= < Program > < Statement > 
+                    | < Statement >
+
+< Statement >   ::= < Expression > NEWLINE
+
+< Expression >  ::= < Term > < Expression' >
+
+< Expression' > ::= PLUS < Term  > < Expression' >
+                    | MINUS < Term > < Expression' >
+                    | ""
+                    
+< Term >        ::= < Factor > < Term' >
+
+< Term' >       ::= TIMES  < Factor > < Term' >
+                    | DIVIDE < Factor > < Term' >
+                    | ""
+
+< Factor >      ::= < Base > POW < Factor >
+                    | < Base >
+
+< Base >        ::= LPAREN < Expression > RPAREN
+                    | MINUS < Expression > 
+                    | < Number >
+
+< Number >      ::= INTLIT
+                    | REALLIT
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Program Parse Tree}
+\begin{code}
+                                    (1)
+< Program >     ::= < Program > < Statement > 
+                           (1)
+                    | < Statement >
+
+
+                    
+\end{code}
+
+\pause
+
+\begin{code}
+Parse Tree
+                        PROGRAM
+                     /      |      \
+                   (1) ... (1) ... (1)
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Statement Parse Tree}
+\begin{code}
+                         (1)
+< Statement >   ::= < Expression > NEWLINE
+
+                    
+\end{code}
+
+\pause
+
+\begin{code}
+Parse Tree
+
+                        (1)
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Expression Parse Tree}
+\begin{code}
+                       (1)
+< Expression >  ::= < Term > < Expression' >
+
+                            (2)
+< Expression' > ::= PLUS < Term  > < Expression' >
+                    | MINUS < Term > < Expression' >
+                    | ""
+
+                    
+\end{code}
+
+\pause
+
+\begin{code}
+Parse Tree
+
+    +              -
+  /   \          /   \
+(1)   (2)      (1)   (2)
+\end{code}
+\end{frame}
+
+
+\section{Coding Parse Trees}
+\begin{frame}{Object Oriented Parse Trees}
+    A hierarchy of objects:
+    \begin{itemize}
+        \item \texttt{class ParseTree}
+            \begin{itemize}
+                \item \texttt{class Number: public ParseTree}
+                \item \texttt{class UnaryOp : public ParseTree}
+                \begin{itemize}
+                    \item \texttt{class Neg: public UnaryOp }
+                \end{itemize}
+                \item \texttt{class BinaryOp : public ParseTree}
+                \begin{itemize}
+                    \item \texttt{class Add : public BinaryOp}
+                    \item \texttt{class Sub : public BinaryOp}
+                    \item \texttt{class Mul : public BinaryOp}
+                    \item \texttt{class Div : public BinaryOp}
+                    \item \texttt{class Pow : public BinaryOp}
+                \end{itemize}
+                \item \texttt{class NaryOp : public ParseTree}
+                \begin{itemize}
+                    \item \texttt{class Program : NaryOp}
+                \end{itemize}
+            \end{itemize}
+        \end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]{Building the Program Parse Tree}
+\begin{code}
+/*
+ * < Program >     ::= < Program > < Statement > 
+ *                      | < Statement >
+ */
+ParseTree *Parser::parse_program()
+{
+    Program *result = new Program(curtok());
+
+    // Technically, this is not LL(1), but it is easy enough to handle 
+    // this with a while loop
+    while(not has(TEOF)) {
+        result->push(parse_statement());
+    }
+    return result;
+}
+\end{code}
+\end{frame}
+
+\begin{frame}[fragile]{Building the Statement Parse Tree}
+\begin{code}
+/*
+ * < Statement >   ::= < Expression > NEWLINE
+ */
+ParseTree *Parser::parse_statement()
+{
+    ParseTree *result = parse_expression();
+    must_be(NEWLINE);
+    next();
+
+    return result;
+}
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Building the Expression Parse Tree}
+\begin{code}
+/*
+ * < Expression >  ::= < Term > < Expression' >
+ */
+ParseTree *Parser::parse_expression()
+{
+    ParseTree *left = parse_term();
+    return parse_expression_prime(left);
+}
+\end{code}
+\end{frame}
+
+\begin{frame}[t,fragile]{Building the Expression Parse Tree}
+
+\begin{code}
+/*
+ * < Expression' > ::= PLUS < Term  > < Expression' >
+ *                     | MINUS < Term > < Expression' >
+ *                     | ""
+ */
+\end{code}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\begin{code}
+ParseTree *Parser::parse_expression_prime(ParseTree *left)
+{
+    if(has(PLUS)) {
+        // start the parse tree
+        Add *result = new Add(curtok());
+        next();
+
+        //get the children
+        result->left(left);
+        result->right(parse_term());
+        return parse_expression_prime(result);
+\end{code}
+\column{0.5\textwidth}
+\begin{code}
+    } else if(has(MINUS)) {
+        // start the parse tree
+        Sub *result = new Sub(curtok());
+        next();
+
+        // get the children
+        result->left(left);
+        result->right(parse_term());
+        return parse_expression_prime(result);
+    }
+
+    // nothing to do for the empty case
+    return left;
+}
+\end{code}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Suggested Exercises}
+    \begin{itemize}
+        \item Sketch the parse tree formation for the rest of the rules in calc.
+        \item Think about how you would implement those.
+        \item Read the modified parser code as well as the parse tree code.
+        \item Watch the video tutorials on pointers and tree data structures.
+    \end{itemize}
+\end{frame}
+
+\end{document}

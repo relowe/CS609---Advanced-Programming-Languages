@@ -120,7 +120,7 @@
 % - If you omit details that are vital to the proof/implementation,
 %   just say so once. Everybody will be happy with that.
 
-\section{Expression Effects}
+\section{Expressions}
 \begin{frame}{Effects and Side Effects}
     \begin{block}{Definitions}
         \begin{itemize} 
@@ -162,8 +162,6 @@ cout << "Hello, World" << endl;      ==> Displays Hello, World
         \item This allows expressions to be processed independently, and sometimes out of order.
     \end{itemize}
 \end{frame}
-
-\section{Expression Types}
 
 \begin{frame}{Arithmetic Expressions}
     \begin{itemize}
@@ -216,7 +214,6 @@ Effect
 \end{itemize}
 \end{frame}
 
-\section{Evaluation Strategies}
 \begin{frame}{Operand Evaluation}
     \begin{itemize}
         \item For left associative operators: process all operands left to right then evaluate the expression.
@@ -254,9 +251,171 @@ Effect
     \end{code}
 \end{frame}
 
-\begin{frame}{Reading Assignment}
+\section{Interpreting Expressions}
+
+
+\begin{frame}[fragile]{Parse Trees and Evaluation}
+\begin{columns}
+\column{0.5\textwidth}
+    \begin{itemize}
+        \item A parse tree is a lot like a dependency graph.
+        \item Interior nodes are operations.
+        \item Leaves are immediately available.
+        \item A depth first traversal of the tree allows us to evaluate the tree recursively.
+    \end{itemize}
+\column{0.5\textwidth}
+\begin{code}
+     +
+   /   \
+  3     *
+       /  \
+      2    4
+\end{code}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}[fragile]{Depth First Tree Traversals}
+\begin{columns}
+\column{0.7\textwidth}
+    \begin{itemize}
+        \item<2-> \textbf{Preorder}: \texttt{+ 3 * 2 4}
+        \begin{code}
+    visit(node)
+    preorder(node->left)
+    preorder(node->right)
+        \end{code}
+        \item<3-> \textbf{Inorder}: \texttt{3 + 2 * 4}
+        \begin{code}
+    inorder(node->left)
+    visit(node)
+    inorder(node->right)
+        \end{code}
+        \item<4-> \textbf{Postorder}:  \texttt{3 2 4 * +}
+        \begin{code}
+    postorder(node->left)
+    postors0der(node->right)
+    visit(node)
+        \end{code}
+    \end{itemize}
+\column{0.3\textwidth}
+\begin{code}
+     +
+   /   \
+  3     *
+       /  \
+      2    4
+\end{code}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}[t,fragile]{Tree Walk Interpreting}
+\begin{columns}[T]
+\column{0.7\textwidth}
+    \begin{itemize}
+        \item Perform a postorder traversal of the parse tree.
+        \item As we ``visit'' eacg node, we replace it with its evaluated value.
+        \item In this way, we discover the operands first and then we can process the operations.
+    \end{itemize}
+\column{0.3\textwidth}
+\begin{code}
+     +
+   /   \
+  3     *
+       /  \
+      2    4
+\end{code}
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Tree Walk Evaluation}
+\begin{columns}
+\column{0.33\textwidth}
+\begin{code}
+
+
+     +
+   /   \
+  3     *
+       /  \
+      2    4
+
+\end{code}
+
+\pause
+\column{0.33\textwidth}
+\begin{code}
+Visit: 3
+     +
+   /   \
+  3     *
+       /  \
+      2    4
+
+\end{code}
+
+\pause
+\column{0.33\textwidth}
+\begin{code}
+Visit: 2
+     +
+   /   \
+  3     *
+       /  \
+      2    4
+
+
+\end{code}
+\end{columns}
+
+
+\begin{columns}
+\pause
+\column{0.33\textwidth}
+\begin{code}
+Visit: 4
+     +
+   /   \
+  3     *
+       /  \
+      2    4
+
+\end{code}
+
+\pause
+\column{0.33\textwidth}
+\begin{code}
+Visit: *
+     +
+   /   \
+  3     8
+
+
+
+\end{code}
+
+\pause
+\column{0.33\textwidth}
+\begin{code}
+Visit: +
+     11
+   
+
+  
+
+
+\end{code}
+
+
+\end{columns}
+\end{frame}
+
+\begin{frame}{Suggested Exercises}
     \begin{itemize}
         \item Read Chapter 7 -- Expressions and Assignment Statements 
+        \item Construct parse trees for a variety of expressions and evaluate them by traversal.
+        \item Read over the source code for the interpreter. We will be discussing this in the next lecture!
     \end{itemize}
 \end{frame}
 

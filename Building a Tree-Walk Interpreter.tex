@@ -1,0 +1,337 @@
+% Uncomment for handout
+\def\HANDOUT{}
+
+
+\ifdefined\HANDOUT
+\documentclass[handout]{beamer}
+\usepackage{pgfpages}
+\pgfpagesuselayout{4 on 1}[letterpaper,landscape,border shrink=5mm]
+\else
+\documentclass{beamer}
+\fi
+
+\mode<presentation>
+{
+  \usetheme{Warsaw}
+  \definecolor{sered}{rgb}{0.78, 0.06, 0.18}
+  \definecolor{richblack}{rgb}{0.0, 0.0, 0.0}
+  \setbeamercolor{structure}{fg=sered,bg=richblack}
+  %\setbeamercovered{transparent}
+}
+
+
+\usepackage[english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\usepackage{fancyvrb}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{esvect}
+
+\makeatletter
+\newcommand{\imagesource}[1]{{\centering\hfill\break\hbox{\scriptsize Image Source:\thinspace{\tiny\itshape #1}}\par}}
+\newcommand{\image}[3][\@nil]{%
+        \def\tmp{#1}%
+        \begin{center}
+        \ifx\tmp\@nnil
+            \includegraphics[max height = 0.55\textheight, max width = \textwidth]{images/#2}
+        \else
+            \includegraphics[max height = 0.50\textheight, max width = \textwidth]{images/#2}
+            \linebreak
+            #1
+        \fi
+        \linebreak
+        {\tiny Image Source:\thinspace{\tiny #3}}
+        \end{center}
+}
+
+\newenvironment{code}{%
+ \VerbatimEnvironment
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ \begin{BVerbatim}
+  }{
+  \end{BVerbatim}
+ \end{adjustbox}
+}
+
+
+\newenvironment{scaled}{%
+ \begin{adjustbox}{max width=\textwidth, max height=0.7\textheight}
+ }{
+ \end{adjustbox}
+}
+
+\title{Building a Tree-Walk Interpreter}
+
+
+\author{Robert Lowe}
+
+\institute[Southeast Missouri State University] % (optional, but mostly needed)
+{
+  Department of Computer Science\\
+  Southeast Missouri State University
+}
+
+\date[]{}
+\subject{}
+
+\pgfdeclareimage[height=1.0cm]{university-logo}{images/semo-logo}
+\logo{\pgfuseimage{university-logo}}
+
+
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+
+% Structuring a talk is a difficult task and the following structure
+% may not be suitable. Here are some rules that apply for this
+% solution: 
+
+% - Exactly two or three sections (other than the summary).
+% - At *most* three subsections per section.
+% - Talk about 30s to 2min per frame. So there should be between about
+%   15 and 30 frames, all told.
+
+% - A conference audience is likely to know very little of what you
+%   are going to talk about. So *simplify*!
+% - In a 20min talk, getting the main ideas across is hard
+%   enough. Leave out details, even if it means being less precise than
+%   you think necessary.
+% - If you omit details that are vital to the proof/implementation,
+%   just say so once. Everybody will be happy with that.
+
+\section{Basic Plan}
+\begin{frame}{Elements of a Tree-Walk Interpreter}
+    \begin{itemize}
+        \item A mechanism for returning values from evaluation.
+        \item A mutually recursive evaluation function for each parse tree node.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Returning Results}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{itemize}
+    \item C++ is a \textbf{statically typed} language.
+    \item Expressions can return one of several results.
+    \item A \texttt{union} is one way to account for this.
+\end{itemize}
+\column{0.5\textwidth}
+\begin{code}
+union ResultField
+{
+    int i;
+    double r;
+};
+\end{code}
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Returning Results}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{itemize}
+    \item We need some way to identify which \texttt{union} field to access.
+    \item Pairing a \texttt{union} with an \texttt{enum} is a common approach.
+\end{itemize}
+\column{0.5\textwidth}
+\begin{code}
+enum ResultType 
+{
+    VOID=0,
+    INTEGER,
+    REAL
+};
+
+struct Result
+{
+    // the value and type of the result
+    ResultField val;
+    ResultType type;
+};
+\end{code}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}[fragile]{Convenience Methods and Macros}
+\begin{code}
+// convert result types to strings
+extern const char* RTSTR[];
+
+// print result values
+std::ostream& operator<<(std::ostream& os, const Result &result);
+
+// A macro to extract the numeric result from Result
+#define NUM_RESULT(res) ((res).type == INTEGER ? (res).val.i : (res).val.r)
+
+// A macro to assign the correct numeric field
+#define NUM_ASSIGN(res, n) ((res).type == INTEGER ? (res).val.i=(n) : (res).val.r=(n))
+\end{code}
+\begin{itemize}
+    \item Retrieving and assigning numbers is a common operation.
+    \item Printing a result is frequently needed.
+    \item For debugging, we may want to print the types.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]{Parse Tree Evaluation Functions}
+\begin{columns}
+\column{0.5\textwidth}
+\begin{itemize}
+    \item We add a \textbf{pure virtual} function to the \texttt{ParseTree} class.
+    \item Each type of \texttt{ParseTree} node will have its own mutually recursive \texttt{eval} function.
+    \item \texttt{eval} will return a \texttt{Result} object for each operation.
+\end{itemize}
+\column{0.5\textwidth}
+\begin{code}
+class ParseTree
+{
+public:
+    //constructor and destructor
+    ParseTree(LexerToken &token);
+    virtual ~ParseTree();
+    ...
+    // evaluate the parse tree
+    virtual Result eval()=0;
+    ...
+private:
+    ...
+};
+\end{code}
+\end{columns}
+\end{frame}
+
+\section{Implementation}
+\begin{frame}[fragile]{Evaluating Numbers}
+\begin{code}
+Number::Number(LexerToken _token) : ParseTree(_token)
+{
+    //get the number's value
+    if(_token == INTLIT) {
+        _val.type = INTEGER;
+        _val.val.i = stoi(_token.lexeme);
+    } else if(_token == REALLIT) {
+        _val.type = REAL;
+        _val.val.r = stod(_token.lexeme);
+    }
+}
+
+Result Number::eval()
+{
+    return _val;
+}
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Evaluate Unary Operations}
+\begin{code}
+Result Neg::eval()
+{
+    //eval the child and then negate it
+    Result result = child()->eval();
+    NUM_ASSIGN(result, -NUM_RESULT(result));
+
+    return result;
+}
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Evaluate Binary Operations}
+\begin{code}
+Result Add::eval() 
+{
+    // evaluate the children
+    Result l = left()->eval();
+    Result r = right()->eval();
+
+    // get the type of the result
+    Result result;
+    result.type = coerce(l, r);
+
+    // perform the operation
+    NUM_ASSIGN(result, NUM_RESULT(l) + NUM_RESULT(r));
+
+    return result;
+}
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Type Coercion}
+\begin{code}
+static ResultType coerce(Result left, Result right) 
+{
+    // if the types match, there is no coercion
+    if(left.type == right.type) return left.type;
+
+    // if either left or right is void, so is the result
+    if(left.type == VOID or right.type == VOID) return VOID;
+
+    // perform type widening
+    if((left.type == REAL and right.type == INTEGER) or 
+       (left.type == INTEGER and right.type == REAL)) {
+        return REAL;
+    }
+
+    //TODO: Technically, if we make it here we have an error. For now, we will
+    //      just default to void. Eventually, we should report a type error.
+    return VOID;
+}
+\end{code}
+\end{frame}
+
+
+\begin{frame}[fragile]{Evaluating Programs}
+\begin{code}
+Result Program::eval()
+{
+    // evaluate and print each statement in the program
+    for(auto itr = begin(); itr != end(); itr++) {
+        std::cout << (*itr)->eval() << std::endl;
+    }
+
+    // programs return void
+    Result result;
+    result.type = VOID;
+
+    return result;
+}
+\end{code}
+\end{frame}
+
+\begin{frame}{Suggested Exercises}
+    \begin{itemize}
+        \item Compile and run the complete calc interpreter.
+        \item Try out a series of expressions in REPL mode. (Running without a file name.)
+        \item Does the output match expectations? What seems odd?
+        \item Where is the problem? Is it a language or implementation bug?
+        \item Study the main function in \texttt{calc.cpp}. How does the REPL loop work? Why was that necessary; that is, why not just pass \texttt{cin} into the lexer and run the program?
+    \end{itemize}
+\end{frame}
+
+\end{document}
+

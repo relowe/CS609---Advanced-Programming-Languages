@@ -1,0 +1,12 @@
+run = "cowsay This replit is designed to run manually from the shell!"
+
+hidden = ["*.aux", "*.log", "index.html", "runner.sh", "nohup.out"]
+
+[languages.latex]
+pattern = "**/*.tex"
+
+[languages.latex.languageServer]
+start = "texlab"
+
+[nix]
+channel = "stable-23_11"
